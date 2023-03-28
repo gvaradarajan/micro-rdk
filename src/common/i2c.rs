@@ -15,7 +15,12 @@ pub trait BoardI2C<AddressType> {
     }
 
     // write_read_i2c represents a transactional write and read to an I2C address
-    fn write_read_i2c(&mut self, _address: AddressType, _bytes: &[u8], _buffer: &mut [u8]) -> anyhow::Result<()> {
+    fn write_read_i2c(
+        &mut self,
+        _address: AddressType,
+        _bytes: &[u8],
+        _buffer: &mut [u8],
+    ) -> anyhow::Result<()> {
         anyhow::bail!("write_read_i2c unimplemented")
     }
 }
@@ -32,7 +37,12 @@ where
         self.lock().unwrap().write_i2c(address, bytes)
     }
 
-    fn write_read_i2c(&mut self, address: u8, bytes: &[u8], buffer: &mut [u8]) -> anyhow::Result<()> {
+    fn write_read_i2c(
+        &mut self,
+        address: u8,
+        bytes: &[u8],
+        buffer: &mut [u8],
+    ) -> anyhow::Result<()> {
         self.lock().unwrap().write_read_i2c(address, bytes, buffer)
     }
 }
@@ -49,7 +59,12 @@ where
         self.lock().unwrap().write_i2c(address, bytes)
     }
 
-    fn write_read_i2c(&mut self, address: u16, bytes: &[u8], buffer: &mut [u8]) -> anyhow::Result<()> {
+    fn write_read_i2c(
+        &mut self,
+        address: u16,
+        bytes: &[u8],
+        buffer: &mut [u8],
+    ) -> anyhow::Result<()> {
         self.lock().unwrap().write_read_i2c(address, bytes, buffer)
     }
 }

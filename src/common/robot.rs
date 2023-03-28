@@ -398,12 +398,11 @@ mod tests {
 
         assert_eq!(value.unwrap(), 11);
 
-        let bytes: [u8; 3] = [0,1,2];
+        let bytes: [u8; 3] = [0, 1, 2];
         assert!(board.as_mut().unwrap().write_i2c(0, &bytes).is_ok());
-        let mut buffer: [u8; 3] = [0,0,0];
+        let mut buffer: [u8; 3] = [0, 0, 0];
         assert!(board.as_ref().unwrap().read_i2c(0, &mut buffer).is_ok());
-        assert!(buffer.iter().zip(bytes.iter()).all(|(a,b)| a == b));
-
+        assert!(buffer.iter().zip(bytes.iter()).all(|(a, b)| a == b));
 
         let sensor = robot.get_sensor_by_name("sensor".to_string());
 

@@ -27,7 +27,7 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 
 pub struct FakeBoard {
     analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>,
-    i2c_val: [u8; 3]
+    i2c_val: [u8; 3],
 }
 pub trait Board: Status + BoardI2C<u8> {
     fn set_gpio_pin_level(&mut self, pin: i32, is_high: bool) -> anyhow::Result<()>;
@@ -48,7 +48,10 @@ pub(crate) type BoardType = Arc<Mutex<dyn Board>>;
 
 impl FakeBoard {
     pub fn new(analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>) -> Self {
-        FakeBoard { analogs, i2c_val: [0,0,0] }
+        FakeBoard {
+            analogs,
+            i2c_val: [0, 0, 0],
+        }
     }
     pub(crate) fn from_config(cfg: ConfigType) -> anyhow::Result<BoardType> {
         match cfg {
@@ -65,7 +68,10 @@ impl FakeBoard {
                             a
                         })
                         .collect();
-                    return Ok(Arc::new(Mutex::new(FakeBoard { analogs, i2c_val: [0,0,0] })));
+                    return Ok(Arc::new(Mutex::new(FakeBoard {
+                        analogs,
+                        i2c_val: [0, 0, 0],
+                    })));
                 }
             }
         };
@@ -122,7 +128,6 @@ impl Board for FakeBoard {
         );
         Ok(())
     }
-
 }
 
 impl Status for FakeBoard {
@@ -178,7 +183,12 @@ impl BoardI2C<u8> for FakeBoard {
         anyhow::Ok(())
     }
 
-    fn write_read_i2c(&mut self, _address: u8, _bytes: &[u8], _buffer: &mut [u8]) -> anyhow::Result<()> {
+    fn write_read_i2c(
+        &mut self,
+        _address: u8,
+        _bytes: &[u8],
+        _buffer: &mut [u8],
+    ) -> anyhow::Result<()> {
         anyhow::bail!("transactional write_read unimplemented for FakeI2C")
     }
 }
@@ -210,5 +220,4 @@ where
     ) -> anyhow::Result<()> {
         self.lock().unwrap().set_power_mode(mode, duration)
     }
-
 }
