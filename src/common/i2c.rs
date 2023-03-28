@@ -6,16 +6,16 @@ use std::sync::{Arc, Mutex};
 // embedded_hal I2C trait when supporting boards beyond ESP32. AddressType is
 // either u8 (indicating support for 7-bit addresses) or u16 (for supporting 10-bit addresses)
 pub trait BoardI2C<AddressType> {
-    fn read_i2c(&self, address: AddressType, buffer: &mut [u8]) -> anyhow::Result<()> {
+    fn read_i2c(&self, _address: AddressType, _buffer: &mut [u8]) -> anyhow::Result<()> {
         anyhow::bail!("read_i2c unimplemented")
     }
 
-    fn write_i2c(&mut self, address: AddressType, bytes: &[u8]) -> anyhow::Result<()> {
+    fn write_i2c(&mut self, _address: AddressType, _bytes: &[u8]) -> anyhow::Result<()> {
         anyhow::bail!("write_i2c unimplemented")
     }
 
     // write_read_i2c represents a transactional write and read to an I2C address
-    fn write_read_i2c(&mut self, address: AddressType, bytes: &[u8], buffer: &mut [u8]) -> anyhow::Result<()> {
+    fn write_read_i2c(&mut self, _address: AddressType, _bytes: &[u8], _buffer: &mut [u8]) -> anyhow::Result<()> {
         anyhow::bail!("write_read_i2c unimplemented")
     }
 }
