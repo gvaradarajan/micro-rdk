@@ -3,7 +3,8 @@
 use std::sync::{Arc, Mutex};
 
 // A trait representing I2C communication for a board. TODO: replace with the
-// embedded_hal I2C trait when supporting boards beyond ESP32
+// embedded_hal I2C trait when supporting boards beyond ESP32. AddressType is
+// either u8 (indicating support for 7-bit addresses) or u16 (for supporting 10-bit addresses)
 pub trait BoardI2C<AddressType> {
     fn read_i2c(&self, address: AddressType, buffer: &mut [u8]) -> anyhow::Result<()>;
 
