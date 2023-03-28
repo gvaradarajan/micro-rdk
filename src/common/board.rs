@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use super::analog::FakeAnalogReader;
 use super::config::{Component, ConfigType};
+use super::i2c::BoardI2C;
 use super::registry::ComponentRegistry;
 
 pub(crate) fn register_models(registry: &mut ComponentRegistry) {
@@ -26,8 +27,9 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 
 pub struct FakeBoard {
     analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>,
+    i2c_val: [u8; 3]
 }
-pub trait Board: Status {
+pub trait Board: Status + BoardI2C<u8> {
     fn set_gpio_pin_level(&mut self, pin: i32, is_high: bool) -> anyhow::Result<()>;
     fn get_board_status(&self) -> anyhow::Result<common::v1::BoardStatus>;
     fn get_gpio_level(&self, pin: i32) -> anyhow::Result<bool>;
@@ -46,7 +48,7 @@ pub(crate) type BoardType = Arc<Mutex<dyn Board>>;
 
 impl FakeBoard {
     pub fn new(analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>) -> Self {
-        FakeBoard { analogs }
+        FakeBoard { analogs, i2c_val: [0,0,0] }
     }
     pub(crate) fn from_config(cfg: ConfigType) -> anyhow::Result<BoardType> {
         match cfg {
@@ -63,7 +65,7 @@ impl FakeBoard {
                             a
                         })
                         .collect();
-                    return Ok(Arc::new(Mutex::new(FakeBoard { analogs })));
+                    return Ok(Arc::new(Mutex::new(FakeBoard { analogs, i2c_val: [0,0,0] })));
                 }
             }
         };
@@ -120,6 +122,7 @@ impl Board for FakeBoard {
         );
         Ok(())
     }
+
 }
 
 impl Status for FakeBoard {
@@ -158,6 +161,28 @@ impl Status for FakeBoard {
     }
 }
 
+impl BoardI2C<u8> for FakeBoard {
+    fn read_i2c(&self, _address: u8, buffer: &mut [u8]) -> anyhow::Result<()> {
+        for (i, x) in self.i2c_val.iter().enumerate() {
+            if i < buffer.len() {
+                buffer[i] = *x;
+            }
+        }
+        anyhow::Ok(())
+    }
+
+    fn write_i2c(&mut self, _address: u8, bytes: &[u8]) -> anyhow::Result<()> {
+        for (i, x) in bytes.iter().enumerate() {
+            self.i2c_val[i] = *x;
+        }
+        anyhow::Ok(())
+    }
+
+    fn write_read_i2c(&mut self, _address: u8, _bytes: &[u8], _buffer: &mut [u8]) -> anyhow::Result<()> {
+        anyhow::bail!("transactional write_read unimplemented for FakeI2C")
+    }
+}
+
 impl<A> Board for Arc<Mutex<A>>
 where
     A: ?Sized + Board,
@@ -185,4 +210,5 @@ where
     ) -> anyhow::Result<()> {
         self.lock().unwrap().set_power_mode(mode, duration)
     }
+
 }

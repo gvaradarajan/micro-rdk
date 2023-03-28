@@ -306,6 +306,7 @@ impl LocalRobot {
 mod tests {
     use crate::common::board::Board;
     use crate::common::config::{Kind, RobotConfigStatic, StaticComponentConfig};
+    use crate::common::i2c::BoardI2C;
     use crate::common::motor::Motor;
     use crate::common::movement_sensor::MovementSensor;
     use crate::common::robot::LocalRobot;
@@ -374,7 +375,7 @@ mod tests {
 
         assert_eq!(position.ok().unwrap(), 1205);
 
-        let board = robot.get_board_by_name("board".to_string());
+        let mut board = robot.get_board_by_name("board".to_string());
 
         assert!(board.is_some());
 
@@ -396,6 +397,13 @@ mod tests {
         assert!(value.is_ok());
 
         assert_eq!(value.unwrap(), 11);
+
+        let bytes: [u8; 3] = [0,1,2];
+        assert!(board.as_mut().unwrap().write_i2c(0, &bytes).is_ok());
+        let mut buffer: [u8; 3] = [0,0,0];
+        assert!(board.as_ref().unwrap().read_i2c(0, &mut buffer).is_ok());
+        assert!(buffer.iter().zip(bytes.iter()).all(|(a,b)| a == b));
+
 
         let sensor = robot.get_sensor_by_name("sensor".to_string());
 
