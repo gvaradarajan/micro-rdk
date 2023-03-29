@@ -301,16 +301,17 @@ impl Board for EspBoard {
     }
 }
 impl BoardI2C<u8> for EspBoard {
-    fn read_i2c(&self, _address: u8, _buffer: &mut [u8]) -> anyhow::Result<()> {
+    fn read_i2c(&mut self, _name: String, _address: u8, _buffer: &mut [u8]) -> anyhow::Result<()> {
         anyhow::bail!("read_i2c unimplemented for EspBoard")
     }
 
-    fn write_i2c(&mut self, _address: u8, _bytes: &[u8]) -> anyhow::Result<()> {
+    fn write_i2c(&mut self, _name: String, _address: u8, _bytes: &[u8]) -> anyhow::Result<()> {
         anyhow::bail!("write_i2c unimplemented for EspBoard")
     }
 
     fn write_read_i2c(
         &mut self,
+        _name: String,
         _address: u8,
         _bytes: &[u8],
         _buffer: &mut [u8],
