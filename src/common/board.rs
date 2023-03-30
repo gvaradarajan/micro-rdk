@@ -167,7 +167,7 @@ impl Status for FakeBoard {
 }
 
 impl BoardI2C<u8> for FakeBoard {
-    fn read_i2c(&mut self, _address: u8, buffer: &mut [u8]) -> anyhow::Result<()> {
+    fn read_i2c(&mut self, _name: String, _address: u8, buffer: &mut [u8]) -> anyhow::Result<()> {
         for (i, x) in self.i2c_val.iter().enumerate() {
             if i < buffer.len() {
                 buffer[i] = *x;
@@ -176,7 +176,7 @@ impl BoardI2C<u8> for FakeBoard {
         anyhow::Ok(())
     }
 
-    fn write_i2c(&mut self, _address: u8, bytes: &[u8]) -> anyhow::Result<()> {
+    fn write_i2c(&mut self, _name: String, _address: u8, bytes: &[u8]) -> anyhow::Result<()> {
         for (i, x) in bytes.iter().enumerate() {
             self.i2c_val[i] = *x;
         }
@@ -185,6 +185,7 @@ impl BoardI2C<u8> for FakeBoard {
 
     fn write_read_i2c(
         &mut self,
+        _name: String,
         _address: u8,
         _bytes: &[u8],
         _buffer: &mut [u8],
