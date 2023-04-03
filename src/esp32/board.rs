@@ -5,7 +5,7 @@ use crate::common::board::Board;
 use crate::common::board::BoardType;
 use crate::common::config::Component;
 use crate::common::config::ConfigType;
-use crate::common::i2c::BoardI2C;
+use crate::common::i2c::I2cHandleType;
 use crate::common::registry::ComponentRegistry;
 use crate::common::status::Status;
 use crate::proto::common;
@@ -299,26 +299,11 @@ impl Board for EspBoard {
             "call to esp_deep_sleep_start returned - board failed to honor power mode request"
         );
     }
-}
-impl BoardI2C<u8> for EspBoard {
-    fn read_i2c(&mut self, _name: String, _address: u8, _buffer: &mut [u8]) -> anyhow::Result<()> {
-        anyhow::bail!("read_i2c unimplemented for EspBoard")
-    }
-
-    fn write_i2c(&mut self, _name: String, _address: u8, _bytes: &[u8]) -> anyhow::Result<()> {
-        anyhow::bail!("write_i2c unimplemented for EspBoard")
-    }
-
-    fn write_read_i2c(
-        &mut self,
-        _name: String,
-        _address: u8,
-        _bytes: &[u8],
-        _buffer: &mut [u8],
-    ) -> anyhow::Result<()> {
-        anyhow::bail!("write_read_i2c unimplemented for EspBoard")
+    fn get_i2c_by_name(&self, name: String) -> anyhow::Result<I2cHandleType> {
+        anyhow::bail!("i2c for esp32 not yet implemented")
     }
 }
+
 impl Status for EspBoard {
     fn get_status(&self) -> anyhow::Result<Option<prost_types::Struct>> {
         let mut bt = BTreeMap::new();
