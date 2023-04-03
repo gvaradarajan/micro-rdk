@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use std::sync::{Arc, Mutex};
 use super::config::{AttributeError, Kind};
+use std::sync::{Arc, Mutex};
 
 // A trait representing blocking I2C communication for a board. TODO: replace with the
 // embedded_hal I2C trait when supporting boards beyond ESP32. AddressType is
@@ -25,7 +25,7 @@ pub(crate) struct FakeI2cConfig {
     pub(crate) name: &'static str,
     pub(crate) value_1: u8,
     pub(crate) value_2: u8,
-    pub(crate) value_3: u8
+    pub(crate) value_3: u8,
 }
 
 impl TryFrom<Kind> for FakeI2cConfig {
@@ -39,19 +39,24 @@ impl TryFrom<Kind> for FakeI2cConfig {
                 let name = v.get("name").unwrap().try_into()?;
                 let value_1 = match v.get("value_1") {
                     Some(val) => val.try_into()?,
-                    None => 0
+                    None => 0,
                 };
                 let value_2 = match v.get("value_2") {
                     Some(val) => val.try_into()?,
-                    None => 0
+                    None => 0,
                 };
                 let value_3 = match v.get("value_3") {
                     Some(val) => val.try_into()?,
-                    None => 0
+                    None => 0,
                 };
-                Ok(FakeI2cConfig{ name, value_1, value_2, value_3})
+                Ok(FakeI2cConfig {
+                    name,
+                    value_1,
+                    value_2,
+                    value_3,
+                })
             }
-            _ => Err(AttributeError::ConversionImpossibleError)
+            _ => Err(AttributeError::ConversionImpossibleError),
         }
     }
 }
@@ -67,19 +72,24 @@ impl TryFrom<&Kind> for FakeI2cConfig {
                 let name = v.get("name").unwrap().try_into()?;
                 let value_1 = match v.get("value_1") {
                     Some(val) => val.try_into()?,
-                    None => 0
+                    None => 0,
                 };
                 let value_2 = match v.get("value_2") {
                     Some(val) => val.try_into()?,
-                    None => 0
+                    None => 0,
                 };
                 let value_3 = match v.get("value_3") {
                     Some(val) => val.try_into()?,
-                    None => 0
+                    None => 0,
                 };
-                Ok(FakeI2cConfig{ name, value_1, value_2, value_3})
+                Ok(FakeI2cConfig {
+                    name,
+                    value_1,
+                    value_2,
+                    value_3,
+                })
             }
-            _ => Err(AttributeError::ConversionImpossibleError)
+            _ => Err(AttributeError::ConversionImpossibleError),
         }
     }
 }
@@ -87,19 +97,21 @@ impl TryFrom<&Kind> for FakeI2cConfig {
 #[derive(Clone, Debug)]
 pub struct FakeI2CHandle {
     name: String,
-    value: [u8;3],
+    value: [u8; 3],
 }
 
 impl FakeI2CHandle {
     pub fn new(name: String) -> Self {
-        FakeI2CHandle { name, value: [0, 0, 0] }
+        FakeI2CHandle {
+            name,
+            value: [0, 0, 0],
+        }
     }
 
-    pub fn new_with_value(name: String, value: [u8;3]) -> Self {
+    pub fn new_with_value(name: String, value: [u8; 3]) -> Self {
         FakeI2CHandle { name, value }
     }
 }
-
 
 impl I2CHandle<u8> for FakeI2CHandle {
     fn name(&self) -> String {
@@ -121,7 +133,6 @@ impl I2CHandle<u8> for FakeI2CHandle {
         }
         anyhow::Ok(())
     }
-
 }
 
 impl<A> I2CHandle<u8> for Arc<Mutex<A>>
@@ -139,7 +150,6 @@ where
     fn write_i2c(&mut self, address: u8, bytes: &[u8]) -> anyhow::Result<()> {
         self.lock().unwrap().write_i2c(address, bytes)
     }
-
 }
 
 impl<A> I2CHandle<u16> for Arc<Mutex<A>>
