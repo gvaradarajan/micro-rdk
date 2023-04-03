@@ -299,7 +299,7 @@ impl Board for EspBoard {
             "call to esp_deep_sleep_start returned - board failed to honor power mode request"
         );
     }
-    fn get_i2c_by_name(&self, name: String) -> anyhow::Result<I2cHandleType> {
+    fn get_i2c_by_name(&self, _name: String) -> anyhow::Result<I2cHandleType> {
         anyhow::bail!("i2c for esp32 not yet implemented")
     }
 }
