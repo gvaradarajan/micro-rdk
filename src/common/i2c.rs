@@ -92,11 +92,11 @@ pub struct FakeI2CHandle {
 
 impl FakeI2CHandle {
     pub fn new(name: String) -> Self {
-        FakeI2CHandle { name: name, value: [0, 0, 0] }
+        FakeI2CHandle { name, value: [0, 0, 0] }
     }
 
     pub fn new_with_value(name: String, value: [u8;3]) -> Self {
-        FakeI2CHandle { name: name, value: value }
+        FakeI2CHandle { name, value }
     }
 }
 

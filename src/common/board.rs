@@ -80,9 +80,9 @@ impl FakeBoard {
 
                 let i2cs = if let Ok(i2c_confs) = cfg.get_attribute::<Vec<FakeI2cConfig>>("i2cs") {
                     let name_to_i2c = i2c_confs.iter().map(|v| {
-                        let name = v.name.clone().to_string();
+                        let name = v.name.to_string();
                         let value: [u8; 3] = [v.value_1, v.value_2, v.value_3];
-                        (name.to_string(), Arc::new(Mutex::new(FakeI2CHandle::new_with_value(name, value))).clone())
+                        (name.to_string(), Arc::new(Mutex::new(FakeI2CHandle::new_with_value(name, value))))
                     });
                     HashMap::from_iter(name_to_i2c)
                 } else {
