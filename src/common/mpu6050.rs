@@ -17,11 +17,12 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 struct MPU6050State {
     angular_velocity: Vector3,
     linear_acceleration: Vector3,
     // temperature: f64,
+    error: Option<Arc<anyhow::Error>>,
 }
 
 impl MPU6050State {
@@ -30,6 +31,7 @@ impl MPU6050State {
             angular_velocity: Vector3::new(),
             linear_acceleration: Vector3::new(),
             // temperature: 0.0,
+            error: None
         }
     }
 
@@ -39,6 +41,10 @@ impl MPU6050State {
 
     fn get_linear_acceleration(&self) -> Vector3 {
         self.linear_acceleration
+    }
+
+    fn set_error(&mut self, err: Option<Arc<anyhow::Error>>) {
+        self.error = err.clone();
     }
 
     fn set_linear_acceleration_from_reading(&mut self, reading: &[u8; 16]) {
@@ -98,15 +104,20 @@ impl MPU6050 {
                 Err(TryRecvError::Empty) => {
                     let register_write: [u8; 1] = [59];
                     let mut result: [u8; 16] = [0; 16];
-                    let res = i2c_handle_copy.write_read_i2c(i2c_address_copy, &register_write, &mut result); 
-                    if res.is_err()
-                    {
-                        println!("MPU I2C error: {:?}", res);
-                        continue;
-                    };
                     let mut internal_state = state_copy.lock().unwrap();
-                    internal_state.set_linear_acceleration_from_reading(&result);
-                    internal_state.set_angular_velocity_from_reading(&result);
+                    let res = i2c_handle_copy.write_read_i2c(i2c_address_copy, &register_write, &mut result);
+
+                    match res {
+                        Ok(_) => {
+                            internal_state.set_linear_acceleration_from_reading(&result);
+                            internal_state.set_angular_velocity_from_reading(&result);
+                            internal_state.set_error(None);
+                        },
+                        Err(err) => {
+                            println!("MPU I2C error: {:?}", err);
+                            internal_state.set_error(Some(Arc::new(err)));
+                        }
+                    };
                 }
             }
         });
@@ -189,11 +200,25 @@ impl MovementSensor for MPU6050 {
     }
 
     fn get_angular_velocity(&self) -> anyhow::Result<Vector3> {
-        Ok(self.state.lock().unwrap().get_angular_velocity())
+        let state = self.state.lock().unwrap();
+        match state.error {
+            None => Ok(state.get_angular_velocity()),
+            Some(error_arc) => {
+                let inner_err = error_arc.as_ref();
+                Err(*inner_err)
+            }
+        }
     }
 
     fn get_linear_acceleration(&self) -> anyhow::Result<Vector3> {
-        Ok(self.state.lock().unwrap().get_linear_acceleration())
+        let state = self.state.lock().unwrap();
+        match state.error {
+            None => Ok(state.get_linear_acceleration()),
+            Some(error_arc) => {
+                let inner_err = error_arc.as_ref();
+                Err(*inner_err)
+            }
+        }
     }
 
     fn get_position(&self) -> anyhow::Result<super::movement_sensor::GeoPosition> {
@@ -216,10 +241,6 @@ impl Status for MPU6050 {
         }))
     }
 }
-
-// fn spawn_thread(mut mpu: MPU6050, cancel_listener: Receiver<bool>)  {
-
-// }
 
 #[cfg(test)]
 mod tests {
