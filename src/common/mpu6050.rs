@@ -201,22 +201,22 @@ impl MovementSensor for MPU6050 {
 
     fn get_angular_velocity(&self) -> anyhow::Result<Vector3> {
         let state = self.state.lock().unwrap();
-        match state.error {
+        match &state.error {
             None => Ok(state.get_angular_velocity()),
             Some(error_arc) => {
                 let inner_err = error_arc.as_ref();
-                Err(*inner_err)
+                Err(anyhow::anyhow!("{}", *inner_err))
             }
         }
     }
 
     fn get_linear_acceleration(&self) -> anyhow::Result<Vector3> {
         let state = self.state.lock().unwrap();
-        match state.error {
+        match &state.error {
             None => Ok(state.get_linear_acceleration()),
             Some(error_arc) => {
                 let inner_err = error_arc.as_ref();
-                Err(*inner_err)
+                Err(anyhow::anyhow!("{}", *inner_err))
             }
         }
     }
