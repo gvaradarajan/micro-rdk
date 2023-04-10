@@ -42,7 +42,7 @@ fn main() -> anyhow::Result<()> {
 
     esp_idf_svc::log::EspLogger::initialize_default();
     let sys_loop_stack = EspSystemEventLoop::take().unwrap();
-    let periph = Peripherals::take().unwrap();
+    let mut periph = Peripherals::take().unwrap();
 
     #[cfg(not(feature = "qemu"))]
     let robot = {
@@ -57,6 +57,7 @@ fn main() -> anyhow::Result<()> {
         use micro_rdk::esp32::base::Esp32WheelBase;
         use micro_rdk::esp32::board::EspBoard;
         use micro_rdk::esp32::motor::MotorEsp32;
+        use micro_rdk::esp32::i2c::{Esp32I2cConfig, Esp32I2C};
         #[cfg(feature = "camera")]
         let camera = {
             Esp32Camera::new();
@@ -95,9 +96,21 @@ fn main() -> anyhow::Result<()> {
         let chan: AdcChannelDriver<_, Atten11dB<adc::ADC1>> =
             AdcChannelDriver::new(periph.pins.gpio35)?;
         let r2 = Esp32AnalogReader::new("A2".to_string(), chan, adc1.clone());
+        let i2c_conf = Esp32I2cConfig { 
+            name: "i2c0", 
+            bus: "i2c0",
+            baudrate_hz: 1000000,
+            timeout_ns: 0,
+            data_pin: 11,
+            clock_pin: 6,
+        };
+        let i2cs = HashMap::new();
+        let i2c0 = Esp32I2C::new_from_config(i2c_conf);
+        i2cs.insert("i2c0".to_string(), Arc::new(Mutex::new(i2c0)));
         let b = EspBoard::new(
             pins,
             vec![Rc::new(RefCell::new(r)), Rc::new(RefCell::new(r2))],
+            i2cs,
         );
         let motor = Arc::new(Mutex::new(m1));
         let m2 = Arc::new(Mutex::new(m2));

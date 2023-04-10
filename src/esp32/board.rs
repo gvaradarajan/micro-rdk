@@ -17,6 +17,7 @@ use esp_idf_hal::adc::AdcDriver;
 use esp_idf_hal::adc::Atten11dB;
 use esp_idf_hal::adc::ADC1;
 use esp_idf_hal::gpio::{AnyInputPin, AnyOutputPin, Output, PinDriver};
+// use esp_idf_hal::peripherals::Peripherals;
 use log::*;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
@@ -25,6 +26,7 @@ use std::time::Duration;
 
 use super::analog::Esp32AnalogReader;
 use super::i2c::{Esp32I2C, Esp32I2cConfig};
+
 
 pub(crate) fn register_models(registry: &mut ComponentRegistry) {
     if registry
@@ -38,15 +40,15 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 pub struct EspBoard {
     pins: Vec<PinDriver<'static, AnyOutputPin, Output>>,
     analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>,
-    i2cs: HashMap<String, Arc<Mutex<Esp32I2C<'static>>>>,
+    i2cs: HashMap<String, I2cHandleType>,
 }
 
 impl EspBoard {
     pub fn new(
         pins: Vec<PinDriver<'static, AnyOutputPin, Output>>,
         analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>,
+        i2cs: HashMap<String, I2cHandleType>,
     ) -> Self {
-        let i2cs = HashMap::new();
         EspBoard {
             pins,
             analogs,
@@ -221,7 +223,8 @@ impl EspBoard {
         for conf in i2c_confs.iter() {
             let name = conf.name.to_string();
             let i2c = Esp32I2C::new_from_config(*conf)?;
-            i2cs.insert(name.to_string(), Arc::new(Mutex::new(i2c)));
+            let i2c_wrapped: I2cHandleType = Arc::new(Mutex::new(i2c));
+            i2cs.insert(name.to_string(), i2c_wrapped);
         }
         Ok(Arc::new(Mutex::new(Self {
             pins,
@@ -315,8 +318,11 @@ impl Board for EspBoard {
             esp_idf_sys::esp_deep_sleep_start();
         }
     }
-    fn get_i2c_by_name(&self, _name: String) -> anyhow::Result<I2cHandleType> {
-        anyhow::bail!("i2c for esp32 not yet implemented")
+    fn get_i2c_by_name(&self, name: String) -> anyhow::Result<I2cHandleType> {
+        match self.i2cs.get(&name) {
+            Some(i2c_handle) => Ok(Arc::clone(i2c_handle)),
+            None => Err(anyhow::anyhow!("no i2c found with name {}", name))
+        }
     }
 }
 

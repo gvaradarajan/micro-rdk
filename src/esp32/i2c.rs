@@ -1,10 +1,12 @@
 #![allow(dead_code)]
 
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::common::config::{AttributeError, Kind};
 use crate::common::i2c::I2CHandle;
 use esp_idf_hal::delay::BLOCK;
 use esp_idf_hal::gpio::AnyIOPin;
-use esp_idf_hal::i2c::{I2cConfig, I2cDriver};
+use esp_idf_hal::i2c::{I2cConfig, I2cDriver, I2C0, I2C1};
 use esp_idf_hal::peripherals::Peripherals;
 use esp_idf_hal::units::Hertz;
 
@@ -127,14 +129,15 @@ impl<'a> Esp32I2C<'a> {
     pub fn new_from_config(conf: Esp32I2cConfig) -> anyhow::Result<Self> {
         let name = conf.name.to_string();
         let timeout_ns = conf.timeout_ns;
-        let peripherals = Peripherals::take().unwrap();
         let sda = unsafe { AnyIOPin::new(conf.data_pin) };
         let scl = unsafe { AnyIOPin::new(conf.clock_pin) };
         let driver_conf = I2cConfig::from(conf);
 
         match conf.bus {
             "i2c0" => {
-                let driver = I2cDriver::new(peripherals.i2c0, sda, scl, &driver_conf)?;
+                // let i2c0 = peripherals.i2c0.get_mut();
+                let i2c0 = unsafe { I2C0::new() };
+                let driver = I2cDriver::new(i2c0, sda, scl, &driver_conf)?;
                 Ok(Esp32I2C {
                     name,
                     driver,
@@ -142,7 +145,8 @@ impl<'a> Esp32I2C<'a> {
                 })
             }
             "i2c1" => {
-                let driver = I2cDriver::new(peripherals.i2c1, sda, scl, &driver_conf)?;
+                let i2c1 = unsafe { I2C1::new() };
+                let driver = I2cDriver::new(i2c1, sda, scl, &driver_conf)?;
                 Ok(Esp32I2C {
                     name,
                     driver,
