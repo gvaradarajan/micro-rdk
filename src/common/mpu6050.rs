@@ -109,6 +109,7 @@ impl MPU6050 {
 
                     match res {
                         Ok(_) => {
+                            println!("{:?}", result);
                             internal_state.set_linear_acceleration_from_reading(&result);
                             internal_state.set_angular_velocity_from_reading(&result);
                             internal_state.set_error(None);
