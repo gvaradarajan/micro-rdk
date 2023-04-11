@@ -47,7 +47,7 @@ impl MPU6050State {
         self.error = err.clone();
     }
 
-    fn set_linear_acceleration_from_reading(&mut self, reading: &[u8; 16]) {
+    fn set_linear_acceleration_from_reading(&mut self, reading: &[u8; 14]) {
         let mut slice_copy = vec![0; 6];
         slice_copy.clone_from_slice(&(reading[0..6]));
         let mut rdr = Cursor::new(slice_copy);
@@ -63,7 +63,7 @@ impl MPU6050State {
         self.linear_acceleration = Vector3 { x, y, z };
     }
 
-    fn set_angular_velocity_from_reading(&mut self, reading: &[u8; 16]) {
+    fn set_angular_velocity_from_reading(&mut self, reading: &[u8; 14]) {
         let mut slice_copy = vec![0; 6];
         slice_copy.clone_from_slice(&(reading[8..14]));
         let mut rdr = Cursor::new(slice_copy);
@@ -103,13 +103,13 @@ impl MPU6050 {
                 }
                 Err(TryRecvError::Empty) => {
                     let register_write: [u8; 1] = [59];
-                    let mut result: [u8; 16] = [0; 16];
+                    let mut result: [u8; 14] = [0; 14];
                     let mut internal_state = state_copy.lock().unwrap();
                     let res = i2c_handle_copy.write_read_i2c(i2c_address_copy, &register_write, &mut result);
 
                     match res {
                         Ok(_) => {
-                            println!("{:?}", result);
+                            // println!("{:?}", result);
                             internal_state.set_linear_acceleration_from_reading(&result);
                             internal_state.set_angular_velocity_from_reading(&result);
                             internal_state.set_error(None);
@@ -250,8 +250,8 @@ mod tests {
     #[test_log::test]
     fn test_read_linear_acceleration() -> anyhow::Result<()> {
         let mut state = MPU6050State::new();
-        let reading: [u8; 16] = [64, 0, 32, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let expected_reading: [u8; 16] = [64, 0, 32, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let reading: [u8; 14] = [64, 0, 32, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        let expected_reading: [u8; 14] = [64, 0, 32, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         state.set_linear_acceleration_from_reading(&reading);
 
         // test reading array unchanged
@@ -268,8 +268,8 @@ mod tests {
     #[test_log::test]
     fn test_read_angular_velocity() -> anyhow::Result<()> {
         let mut state = MPU6050State::new();
-        let reading: [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 32, 0, 16, 0, 0, 0];
-        let expected_reading: [u8; 16] = [0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 32, 0, 16, 0, 0, 0];
+        let reading: [u8; 14] = [0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 32, 0, 16, 0];
+        let expected_reading: [u8; 14] = [0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 32, 0, 16, 0];
 
         state.set_angular_velocity_from_reading(&reading);
 
@@ -287,8 +287,8 @@ mod tests {
     #[test_log::test]
     fn test_multiple_values_from_single_reading() -> anyhow::Result<()> {
         let mut state = MPU6050State::new();
-        let reading: [u8; 16] = [64, 0, 32, 0, 16, 0, 0, 0, 64, 0, 32, 0, 16, 0, 0, 0];
-        let expected_reading: [u8; 16] = [64, 0, 32, 0, 16, 0, 0, 0, 64, 0, 32, 0, 16, 0, 0, 0];
+        let reading: [u8; 14] = [64, 0, 32, 0, 16, 0, 0, 0, 64, 0, 32, 0, 16, 0];
+        let expected_reading: [u8; 14] = [64, 0, 32, 0, 16, 0, 0, 0, 64, 0, 32, 0, 16, 0];
 
         state.set_angular_velocity_from_reading(&reading);
         state.set_linear_acceleration_from_reading(&reading);
