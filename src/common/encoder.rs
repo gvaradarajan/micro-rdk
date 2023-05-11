@@ -100,7 +100,12 @@ pub trait Encoder: Status {
     }
 }
 
+pub trait SingleEncoder: Encoder {
+    fn set_direction(&mut self, forwards: bool) -> anyhow::Result<()>;
+}
+
 pub(crate) type EncoderType = Arc<Mutex<dyn Encoder>>;
+pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder>>;
 
 pub struct FakeIncrementalEncoder {
     pub ticks: f32,
@@ -257,5 +262,23 @@ where
     }
     fn get_position(&self, position_type: EncoderPositionType) -> anyhow::Result<EncoderPosition> {
         self.lock().unwrap().get_position(position_type)
+    }
+}
+
+impl<A> SingleEncoder for Mutex<A>
+where
+    A: ?Sized + SingleEncoder,
+{
+    fn set_direction(&mut self, forwards: bool) -> anyhow::Result<()> {
+        self.get_mut().unwrap().set_direction(forwards)
+    }
+}
+
+impl<A> SingleEncoder for Arc<Mutex<A>>
+where
+    A: ?Sized + SingleEncoder,
+{
+    fn set_direction(&mut self, forwards: bool) -> anyhow::Result<()> {
+        self.lock().unwrap().set_direction(forwards)
     }
 }
