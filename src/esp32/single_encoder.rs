@@ -161,12 +161,15 @@ impl Esp32SingleEncoder {
     unsafe extern "C" fn irq_handler_increment(arg: *mut core::ffi::c_void) {
         let arg: &mut PulseStorage = &mut *(arg as *mut _);
         let mut status = 0;
+        if arg.acc.load(Ordering::Relaxed) < 10 {
+            println!("Event for unit: {:?}", arg.unit);
+        }
         esp_idf_sys::pcnt_get_event_status(arg.unit, &mut status as *mut c_ulong);
         if status & pcnt_evt_h_lim != 0 {
-            arg.acc.fetch_add(1, Ordering::Relaxed);
+            arg.acc.fetch_add(1, Ordering::SeqCst);
         }
         if status & pcnt_evt_l_lim != 0 {
-            arg.acc.fetch_add(1, Ordering::Relaxed);
+            arg.acc.fetch_add(1, Ordering::SeqCst);
         }
     }
 
@@ -177,10 +180,10 @@ impl Esp32SingleEncoder {
         let mut status = 0;
         esp_idf_sys::pcnt_get_event_status(arg.unit, &mut status as *mut c_ulong);
         if status & pcnt_evt_h_lim != 0 {
-            arg.acc.fetch_sub(1, Ordering::Relaxed);
+            arg.acc.fetch_sub(1, Ordering::SeqCst);
         }
         if status & pcnt_evt_l_lim != 0 {
-            arg.acc.fetch_sub(1, Ordering::Relaxed);
+            arg.acc.fetch_sub(1, Ordering::SeqCst);
         }
     }
 }
