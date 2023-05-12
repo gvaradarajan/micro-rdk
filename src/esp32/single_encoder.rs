@@ -271,17 +271,8 @@ impl Status for Esp32SingleEncoder {
 
 impl Drop for Esp32SingleEncoder {
     fn drop(&mut self) {
-        match esp!(unsafe {
+        unsafe {
             esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
-        }) {
-            ESP_OK => {},
-            err => {
-                println!(
-                    "encountered problem removing handler for unit {:?}: {:?}",
-                    self.config.unit,
-                    err
-                );
-            }
         }
         isr_uninstall();
     }
