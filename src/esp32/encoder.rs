@@ -62,7 +62,7 @@ where
     B: InputPin + PinExt,
 {
     pub fn new(a: A, b: B) -> anyhow::Result<Self> {
-        let unit = get_unit();
+        let unit = get_unit()?;
         let pcnt = Box::new(PulseStorage {
             acc: Arc::new(AtomicI32::new(0)),
             unit,

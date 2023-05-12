@@ -1,5 +1,6 @@
+use super::single_encoder::SingleEncoderType;
 use crate::common::encoder::{
-    Encoder, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder, SingleEncoderType,
+    Encoder, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder,
 };
 use crate::common::motor::{Motor, MotorType};
 

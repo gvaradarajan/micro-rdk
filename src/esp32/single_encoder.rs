@@ -5,7 +5,7 @@ use super::pin::PinExt;
 use super::pulse_counter::{get_unit, isr_install, isr_uninstall};
 
 use crate::common::encoder::{
-    Encoder, EncoderPosition, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder,
+    Encoder, EncoderPosition, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder
 };
 
 use core::ffi::{c_short, c_ulong};
@@ -21,7 +21,7 @@ use espsys::{esp, EspError, ESP_OK};
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicI32, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::common::status::Status;
 
@@ -37,7 +37,7 @@ pub struct Esp32SingleEncoder {
 
 impl Esp32SingleEncoder {
     pub fn new(encoder_pin: impl InputPin + PinExt) -> anyhow::Result<Self> {
-        let unit = get_unit();
+        let unit = get_unit()?;
         let pcnt = Box::new(PulseStorage {
             acc: Arc::new(AtomicI32::new(0)),
             unit,
