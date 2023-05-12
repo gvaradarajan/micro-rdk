@@ -272,7 +272,7 @@ impl Status for Esp32SingleEncoder {
 impl Drop for Esp32SingleEncoder {
     fn drop(&mut self) {
         unsafe {
-            esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
+            esp_idf_sys::pcnt_isr_handler_remove(self.config.unit);
         }
         isr_uninstall();
     }
