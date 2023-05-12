@@ -128,7 +128,7 @@ impl Esp32SingleEncoder {
             }
         }
 
-        isr_install(self.config.unit)?;
+        isr_install(self.config.unit as i32)?;
 
         esp!(unsafe {
             esp_idf_sys::pcnt_isr_handler_add(

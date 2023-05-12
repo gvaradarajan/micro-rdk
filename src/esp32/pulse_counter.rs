@@ -30,7 +30,7 @@ pub(crate) fn get_unit() -> anyhow::Result<u32> {
     Ok(NEXT_UNIT.fetch_add(1, Ordering::SeqCst))
 }
 
-pub(crate) fn isr_install(unit: u32) -> anyhow::Result<()> {
+pub(crate) fn isr_install(unit: i32) -> anyhow::Result<()> {
     ISR_INSTALLED.store(true, Ordering::Relaxed);
     // if !ISR_INSTALLED.fetch_or(true, Ordering::Relaxed) {
     //     unsafe {
