@@ -85,6 +85,7 @@ impl Esp32SingleEncoder {
                 err => return Err(EspError::from(err).unwrap().into()),
             }
         }
+        self.pulse_counter.acc.store(0, Ordering::Relaxed);
         self.start()?;
         Ok(())
     }
