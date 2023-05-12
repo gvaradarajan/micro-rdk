@@ -1,5 +1,6 @@
 use esp_idf_sys::{pcnt_isr_service_install, pcnt_isr_service_uninstall, EspError, ESP_OK};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::Mutex;
 
 /*
 This module exists because we want to ensure uniqueness of unit number
@@ -19,16 +20,16 @@ we are able to make that update, this may be deleted.
 
 */
 
-static NEXT_UNIT: AtomicU32 = AtomicU32::new(0);
+static NEXT_UNIT: Mutex<AtomicU32> = Mutex::new(AtomicU32::new(0));
 
-static ISR_INSTALLED: AtomicBool = AtomicBool::new(false);
+static ISR_INSTALLED: Mutex<AtomicBool> = Mutex::new(AtomicBool::new(false));
 
 pub(crate) fn get_unit() -> u32 {
-    NEXT_UNIT.fetch_add(1, Ordering::SeqCst)
+    NEXT_UNIT.lock().fetch_add(1, Ordering::SeqCst)
 }
 
 pub(crate) fn isr_install() -> anyhow::Result<()> {
-    if !ISR_INSTALLED.fetch_or(true, Ordering::Relaxed) {
+    if !ISR_INSTALLED.lock().fetch_or(true, Ordering::Relaxed) {
         unsafe {
             match pcnt_isr_service_install(0) {
                 ESP_OK => {}
@@ -40,7 +41,7 @@ pub(crate) fn isr_install() -> anyhow::Result<()> {
 }
 
 pub(crate) fn isr_uninstall() {
-    if ISR_INSTALLED.fetch_xor(false, Ordering::Relaxed) {
+    if ISR_INSTALLED.lock().fetch_xor(false, Ordering::Relaxed) {
         unsafe {
             pcnt_isr_service_uninstall();
         }
