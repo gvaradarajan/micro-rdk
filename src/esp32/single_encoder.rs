@@ -14,7 +14,6 @@ use espsys::pcnt_channel_edge_action_t_PCNT_CHANNEL_EDGE_ACTION_DECREASE as pcnt
 use espsys::pcnt_channel_edge_action_t_PCNT_CHANNEL_EDGE_ACTION_INCREASE as pcnt_count_inc;
 use espsys::pcnt_channel_level_action_t_PCNT_CHANNEL_LEVEL_ACTION_KEEP as pcnt_mode_keep;
 use espsys::pcnt_channel_t_PCNT_CHANNEL_0 as pcnt_channel_0;
-use espsys::pcnt_channel_t_PCNT_CHANNEL_1 as pcnt_channel_1;
 use espsys::pcnt_config_t;
 use espsys::pcnt_evt_type_t_PCNT_EVT_H_LIM as pcnt_evt_h_lim;
 use espsys::pcnt_evt_type_t_PCNT_EVT_L_LIM as pcnt_evt_l_lim;
@@ -60,9 +59,6 @@ impl Esp32SingleEncoder {
             },
             forwards: true,
         };
-        if unit > 0 {
-            enc.config.channel = pcnt_channel_1
-        }
         enc.setup_pcnt()?;
         enc.start()?;
         Ok(enc)
@@ -161,9 +157,6 @@ impl Esp32SingleEncoder {
     unsafe extern "C" fn irq_handler_increment(arg: *mut core::ffi::c_void) {
         let arg: &mut PulseStorage = &mut *(arg as *mut _);
         let mut status = 0;
-        if arg.acc.load(Ordering::Relaxed) < 10 {
-            println!("Event for unit: {:?}", arg.unit);
-        }
         esp_idf_sys::pcnt_get_event_status(arg.unit, &mut status as *mut c_ulong);
         if status & pcnt_evt_h_lim != 0 {
             arg.acc.fetch_add(1, Ordering::SeqCst);
@@ -178,6 +171,9 @@ impl Esp32SingleEncoder {
     unsafe extern "C" fn irq_handler_decrement(arg: *mut core::ffi::c_void) {
         let arg: &mut PulseStorage = &mut *(arg as *mut _);
         let mut status = 0;
+        if arg.acc.load(Ordering::Relaxed).abs() < 12 {
+            println!("event hit for unit: {:?}", arg.unit);
+        }
         esp_idf_sys::pcnt_get_event_status(arg.unit, &mut status as *mut c_ulong);
         if status & pcnt_evt_h_lim != 0 {
             arg.acc.fetch_sub(1, Ordering::SeqCst);
@@ -230,11 +226,15 @@ impl SingleEncoder for Esp32SingleEncoder {
                     ESP_OK => {}
                     err => return Err(EspError::from(err).unwrap().into()),
                 }
+
                 match esp_idf_sys::pcnt_unit_config(&self.config as *const pcnt_config_t) {
                     ESP_OK => {}
                     err => return Err(EspError::from(err).unwrap().into()),
                 }
             }
+            esp!(unsafe {
+                esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
+            })?;
             esp!(unsafe {
                 esp_idf_sys::pcnt_isr_handler_add(
                     self.config.unit,
@@ -271,6 +271,18 @@ impl Status for Esp32SingleEncoder {
 
 impl Drop for Esp32SingleEncoder {
     fn drop(&mut self) {
+        match esp!(unsafe {
+            esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
+        }) {
+            ESP_OK => {},
+            err => {
+                println!(
+                    "encountered problem removing handler for unit {:?}: {:?}",
+                    self.config.unit,
+                    err
+                );
+            }
+        }
         isr_uninstall();
     }
 }
