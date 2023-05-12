@@ -30,13 +30,21 @@ pub(crate) fn get_unit() -> anyhow::Result<u32> {
     Ok(NEXT_UNIT.fetch_add(1, Ordering::SeqCst))
 }
 
-pub(crate) fn isr_install() -> anyhow::Result<()> {
-    if !ISR_INSTALLED.fetch_or(true, Ordering::Relaxed) {
-        unsafe {
-            match pcnt_isr_service_install(0) {
-                ESP_OK => {}
-                err => return Err(EspError::from(err).unwrap().into()),
-            }
+pub(crate) fn isr_install(unit: u32) -> anyhow::Result<()> {
+    ISR_INSTALLED.store(true, Ordering::Relaxed);
+    // if !ISR_INSTALLED.fetch_or(true, Ordering::Relaxed) {
+    //     unsafe {
+    //         match pcnt_isr_service_install(0) {
+    //             ESP_OK => {}
+    //             err => return Err(EspError::from(err).unwrap().into()),
+    //         }
+    //     }
+    // }
+    println!("installing for unit {:?}", unit);
+    unsafe {
+        match pcnt_isr_service_install(unit) {
+            ESP_OK => {}
+            err => return Err(EspError::from(err).unwrap().into()),
         }
     }
     Ok(())
