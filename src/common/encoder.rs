@@ -105,7 +105,6 @@ pub trait SingleEncoder: Encoder {
 }
 
 pub(crate) type EncoderType = Arc<Mutex<dyn Encoder>>;
-pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder>>;
 
 pub struct FakeIncrementalEncoder {
     pub ticks: f32,

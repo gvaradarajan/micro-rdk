@@ -25,6 +25,10 @@ use std::sync::Arc;
 
 use crate::common::status::Status;
 
+// TODO: Move this type to common once we have a single encoder 
+// implementation for another board
+pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder>>;
+
 pub struct Esp32SingleEncoder {
     pulse_counter: Box<PulseStorage>,
     config: pcnt_config_t,
