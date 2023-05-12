@@ -14,6 +14,7 @@ use espsys::pcnt_channel_edge_action_t_PCNT_CHANNEL_EDGE_ACTION_DECREASE as pcnt
 use espsys::pcnt_channel_edge_action_t_PCNT_CHANNEL_EDGE_ACTION_INCREASE as pcnt_count_inc;
 use espsys::pcnt_channel_level_action_t_PCNT_CHANNEL_LEVEL_ACTION_KEEP as pcnt_mode_keep;
 use espsys::pcnt_channel_t_PCNT_CHANNEL_0 as pcnt_channel_0;
+use espsys::pcnt_channel_t_PCNT_CHANNEL_1 as pcnt_channel_1;
 use espsys::pcnt_config_t;
 use espsys::pcnt_evt_type_t_PCNT_EVT_H_LIM as pcnt_evt_h_lim;
 use espsys::pcnt_evt_type_t_PCNT_EVT_L_LIM as pcnt_evt_l_lim;
@@ -59,6 +60,9 @@ impl Esp32SingleEncoder {
             },
             forwards: true,
         };
+        if unit > 0 {
+            enc.config.channel = pcnt_channel_1
+        }
         enc.setup_pcnt()?;
         enc.start()?;
         Ok(enc)

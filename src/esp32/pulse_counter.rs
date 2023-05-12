@@ -1,4 +1,4 @@
-use esp_idf_sys::{pcnt_isr_service_install, pcnt_isr_service_uninstall, EspError, ESP_OK};
+use esp_idf_sys::{pcnt_isr_service_install, pcnt_isr_service_uninstall, EspError, ESP_OK, ESP_ERR_INVALID_STATE};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 
@@ -43,7 +43,7 @@ pub(crate) fn isr_install(unit: i32) -> anyhow::Result<()> {
     println!("installing for unit {:?}", unit);
     unsafe {
         match pcnt_isr_service_install(unit) {
-            ESP_OK => {}
+            ESP_OK | ESP_ERR_INVALID_STATE => {}
             err => return Err(EspError::from(err).unwrap().into()),
         }
     }
