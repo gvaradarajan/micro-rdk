@@ -31,7 +31,7 @@ pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder>>;
 
 pub struct Esp32SingleEncoder {
     pulse_counter: Box<PulseStorage>,
-    config: pcnt_config_t,
+    config: Box<pcnt_config_t>,
     forwards: bool,
 }
 
@@ -45,7 +45,7 @@ impl Esp32SingleEncoder {
         });
         let mut enc = Esp32SingleEncoder {
             pulse_counter: pcnt,
-            config: pcnt_config_t {
+            config: Box::new(pcnt_config_t {
                 pulse_gpio_num: encoder_pin.pin(),
                 ctrl_gpio_num: -1,
                 pos_mode: pcnt_count_inc,
@@ -56,7 +56,7 @@ impl Esp32SingleEncoder {
                 counter_l_lim: -100,
                 channel: pcnt_channel_0,
                 unit,
-            },
+            }),
             forwards: true,
         };
         enc.setup_pcnt()?;
@@ -111,7 +111,7 @@ impl Esp32SingleEncoder {
     }
     pub fn setup_pcnt(&mut self) -> anyhow::Result<()> {
         unsafe {
-            match esp_idf_sys::pcnt_unit_config(&self.config as *const pcnt_config_t) {
+            match esp_idf_sys::pcnt_unit_config(self.config.as_ref() as *const pcnt_config_t) {
                 ESP_OK => {}
                 err => return Err(EspError::from(err).unwrap().into()),
             }
@@ -224,7 +224,7 @@ impl SingleEncoder for Esp32SingleEncoder {
                     err => return Err(EspError::from(err).unwrap().into()),
                 }
 
-                match esp_idf_sys::pcnt_unit_config(&self.config as *const pcnt_config_t) {
+                match esp_idf_sys::pcnt_unit_config(self.config.as_ref() as *const pcnt_config_t) {
                     ESP_OK => {}
                     err => return Err(EspError::from(err).unwrap().into()),
                 }
