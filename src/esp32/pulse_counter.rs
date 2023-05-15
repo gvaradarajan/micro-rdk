@@ -33,20 +33,20 @@ pub(crate) fn get_unit() -> anyhow::Result<u32> {
 pub(crate) fn isr_install(unit: i32) -> anyhow::Result<()> {
     // ISR_INSTALLED.store(true, Ordering::Relaxed);
     println!("installing for unit {:?}", unit);
-    // if !ISR_INSTALLED.fetch_or(true, Ordering::Relaxed) {
-    //     unsafe {
-    //         match pcnt_isr_service_install(unit) {
-    //             ESP_OK => {}
-    //             err => return Err(EspError::from(err).unwrap().into()),
-    //         }
-    //     }
-    // }
-    unsafe {
-        match pcnt_isr_service_install(unit) {
-            ESP_OK | ESP_ERR_INVALID_STATE => {}
-            err => return Err(EspError::from(err).unwrap().into()),
+    if !ISR_INSTALLED.fetch_or(true, Ordering::Relaxed) {
+        unsafe {
+            match pcnt_isr_service_install(0) {
+                ESP_OK => {}
+                err => return Err(EspError::from(err).unwrap().into()),
+            }
         }
     }
+    // unsafe {
+    //     match pcnt_isr_service_install(unit) {
+    //         ESP_OK | ESP_ERR_INVALID_STATE => {}
+    //         err => return Err(EspError::from(err).unwrap().into()),
+    //     }
+    // }
     Ok(())
 }
 
