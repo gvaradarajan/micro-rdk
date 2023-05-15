@@ -20,7 +20,7 @@ impl SingleEncodedMotor {
 
 impl Motor for SingleEncodedMotor {
     fn set_power(&mut self, power_pct: f64) -> anyhow::Result<()> {
-        let dir = power_pct > 0.0;
+        let dir = (power_pct != 0.0) && (power_pct > 0.0);
         self.motor.set_power(power_pct)?;
         self.encoder.set_direction(dir)
     }
