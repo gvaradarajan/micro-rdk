@@ -1,4 +1,4 @@
-use esp_idf_sys::{pcnt_isr_service_install, pcnt_isr_service_uninstall, EspError, ESP_OK};
+use esp_idf_sys::{pcnt_isr_service_install, pcnt_isr_service_uninstall, EspError, ESP_OK, ESP_ERR_INVALID_STATE};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 
