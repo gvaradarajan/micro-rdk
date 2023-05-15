@@ -236,7 +236,7 @@ impl SingleEncoder for Esp32SingleEncoder {
                 }
             }
         };
-
+        self.dir = dir;
         // self.forwards = forwards;
         println!("reconfigured: {:?}", reconfigure);
         if reconfigure && isr_installed() {
