@@ -206,55 +206,55 @@ impl Encoder for Esp32SingleEncoder {
 
 impl SingleEncoder for Esp32SingleEncoder {
     fn set_direction(&mut self, forwards: bool) -> anyhow::Result<()> {
-        let mut reconfigure = false;
-        if self.forwards && !forwards {
-            self.config.neg_mode = pcnt_count_inc;
-            self.config.pos_mode = pcnt_count_inc;
-            reconfigure = true;
-        } else if !self.forwards && forwards {
-            self.config.neg_mode = pcnt_count_dec;
-            self.config.pos_mode = pcnt_count_dec;
-            reconfigure = true;
-        }
-        self.forwards = forwards;
-        println!("reconfigured: {:?}", reconfigure);
-        if reconfigure && isr_installed() {
-            unsafe {
-                match esp_idf_sys::pcnt_counter_pause(self.config.unit) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
+        // let mut reconfigure = false;
+        // if self.forwards && !forwards {
+        //     self.config.neg_mode = pcnt_count_inc;
+        //     self.config.pos_mode = pcnt_count_inc;
+        //     reconfigure = true;
+        // } else if !self.forwards && forwards {
+        //     self.config.neg_mode = pcnt_count_dec;
+        //     self.config.pos_mode = pcnt_count_dec;
+        //     reconfigure = true;
+        // }
+        // self.forwards = forwards;
+        // println!("reconfigured: {:?}", reconfigure);
+        // if reconfigure && isr_installed() {
+        //     unsafe {
+        //         match esp_idf_sys::pcnt_counter_pause(self.config.unit) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
 
-                match esp_idf_sys::pcnt_unit_config(&self.config as *const pcnt_config_t) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-            }
-            esp!(unsafe {
-                esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
-            })?;
-            esp!(unsafe {
-                esp_idf_sys::pcnt_isr_handler_add(
-                    self.config.unit,
-                    Some(Self::irq_handler_decrement),
-                    self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-                )
-            })?;
-            unsafe {
-                match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_h_lim) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-                match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_l_lim) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-                match esp_idf_sys::pcnt_counter_resume(self.config.unit) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-            }
-        }
+        //         match esp_idf_sys::pcnt_unit_config(&self.config as *const pcnt_config_t) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //     }
+        //     esp!(unsafe {
+        //         esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
+        //     })?;
+        //     esp!(unsafe {
+        //         esp_idf_sys::pcnt_isr_handler_add(
+        //             self.config.unit,
+        //             Some(Self::irq_handler_decrement),
+        //             self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+        //         )
+        //     })?;
+        //     unsafe {
+        //         match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_h_lim) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //         match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_l_lim) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //         match esp_idf_sys::pcnt_counter_resume(self.config.unit) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //     }
+        // }
         Ok(())
     }
 }
