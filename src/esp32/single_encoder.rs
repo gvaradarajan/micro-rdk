@@ -267,14 +267,14 @@ impl Status for Esp32SingleEncoder {
     }
 }
 
-impl Drop for Esp32SingleEncoder {
-    fn drop(&mut self) {
-        if isr_installed() {
-            println!("dropping encoder");
-            unsafe {
-                esp_idf_sys::pcnt_isr_handler_remove(self.config.unit);
-            }
-            isr_uninstall();
-        }
-    }
-}
+// impl Drop for Esp32SingleEncoder {
+//     fn drop(&mut self) {
+//         if isr_installed() {
+//             println!("dropping encoder");
+//             unsafe {
+//                 esp_idf_sys::pcnt_isr_handler_remove(self.config.unit);
+//             }
+//             isr_uninstall();
+//         }
+//     }
+// }
