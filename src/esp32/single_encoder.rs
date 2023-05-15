@@ -58,7 +58,6 @@ impl Esp32SingleEncoder {
                 unit,
             },
             dir: Direction::StoppedForwards
-
         };
         enc.setup_pcnt()?;
         enc.start()?;
@@ -256,22 +255,26 @@ impl SingleEncoder for Esp32SingleEncoder {
             // esp!(unsafe {
             //     esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
             // })?;
-            if self.config.pos_mode == pcnt_count_dec {
-                esp!(unsafe {
-                    esp_idf_sys::pcnt_isr_handler_add(
-                        self.config.unit,
-                        Some(Self::irq_handler_decrement),
-                        self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-                    )
-                })?;
-            } else {
-                esp!(unsafe {
-                    esp_idf_sys::pcnt_isr_handler_add(
-                        self.config.unit,
-                        Some(Self::irq_handler_increment),
-                        self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-                    )
-                })?;
+            println!("flipping for unit: {:?}", self.config.unit);
+            match self.dir {
+                x if x.is_forwards() => {
+                    esp!(unsafe {
+                        esp_idf_sys::pcnt_isr_handler_add(
+                            self.config.unit,
+                            Some(Self::irq_handler_increment),
+                            self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+                        )
+                    })?;
+                },
+                _ => {
+                    esp!(unsafe {
+                        esp_idf_sys::pcnt_isr_handler_add(
+                            self.config.unit,
+                            Some(Self::irq_handler_decrement),
+                            self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+                        )
+                    })?;
+                }
             }
             unsafe {
                 match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_h_lim) {
