@@ -2,7 +2,7 @@ use embedded_hal::digital::v2::InputPin;
 
 use super::encoder::PulseStorage;
 use super::pin::PinExt;
-use super::pulse_counter::{get_unit, isr_install, isr_uninstall};
+use super::pulse_counter::{get_unit, isr_install, isr_uninstall, isr_installed};
 
 use crate::common::encoder::{
     Encoder, EncoderPosition, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder
@@ -268,9 +268,11 @@ impl Status for Esp32SingleEncoder {
 
 impl Drop for Esp32SingleEncoder {
     fn drop(&mut self) {
-        unsafe {
-            esp_idf_sys::pcnt_isr_handler_remove(self.config.unit);
+        if isr_installed() {
+            unsafe {
+                esp_idf_sys::pcnt_isr_handler_remove(self.config.unit);
+            }
+            isr_uninstall();
         }
-        isr_uninstall();
     }
 }

@@ -50,6 +50,10 @@ pub(crate) fn isr_install(unit: i32) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub(crate) fn isr_installed() -> bool {
+    ISR_INSTALLED.load(Ordering::Relaxed)
+}
+
 pub(crate) fn isr_uninstall() {
     if ISR_INSTALLED.fetch_xor(false, Ordering::Relaxed) {
         unsafe {
