@@ -239,7 +239,9 @@ impl SingleEncoder for Esp32SingleEncoder {
         self.dir = dir;
         // self.forwards = forwards;
         println!("reconfigured: {:?}", reconfigure);
-        if reconfigure && isr_installed() {
+        let isr_is_installed = isr_installed();
+        println!("isr_installed: {:?}", isr_is_installed);
+        if reconfigure && isr_is_installed {
             unsafe {
                 match esp_idf_sys::pcnt_counter_pause(self.config.unit) {
                     ESP_OK => {}
@@ -254,13 +256,23 @@ impl SingleEncoder for Esp32SingleEncoder {
             // esp!(unsafe {
             //     esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
             // })?;
-            esp!(unsafe {
-                esp_idf_sys::pcnt_isr_handler_add(
-                    self.config.unit,
-                    Some(Self::irq_handler_decrement),
-                    self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-                )
-            })?;
+            if self.config.pos_mode == pcnt_count_dec {
+                esp!(unsafe {
+                    esp_idf_sys::pcnt_isr_handler_add(
+                        self.config.unit,
+                        Some(Self::irq_handler_decrement),
+                        self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+                    )
+                })?;
+            } else {
+                esp!(unsafe {
+                    esp_idf_sys::pcnt_isr_handler_add(
+                        self.config.unit,
+                        Some(Self::irq_handler_increment),
+                        self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+                    )
+                })?;
+            }
             unsafe {
                 match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_h_lim) {
                     ESP_OK => {}
