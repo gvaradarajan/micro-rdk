@@ -1,6 +1,6 @@
 use super::single_encoder::SingleEncoderType;
 use crate::common::encoder::{
-    Encoder, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder,
+    Encoder, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder, Direction
 };
 use crate::common::motor::{Motor, MotorType};
 
@@ -20,7 +20,18 @@ impl SingleEncodedMotor {
 
 impl Motor for SingleEncodedMotor {
     fn set_power(&mut self, power_pct: f64) -> anyhow::Result<()> {
-        let dir = (power_pct != 0.0) && (power_pct > 0.0);
+        let dir = match power_pct {
+            x if x > 0.0 => Direction::Forwards,
+            x if x < 0.0 => Direction::Backwards,
+            x if x == 0.0 => {
+                let prev_dir = self.encoder.get_direction()?;
+                match prev_dir {
+                    Direction::Backwards | Direction::StoppedBackwards => Direction::StoppedBackwards,
+                    Direction::Forwards | Direction::StoppedForwards => Direction::StoppedForwards,
+                }
+            }
+            _ => anyhow::bail!("how did we get here?")
+        };
         self.motor.set_power(power_pct)?;
         self.encoder.set_direction(dir)
     }

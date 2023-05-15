@@ -100,8 +100,23 @@ pub trait Encoder: Status {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum Direction {
+    Forwards,
+    Backwards,
+    StoppedForwards,
+    StoppedBackwards,
+}
+
+impl Direction {
+    pub fn is_forwards(&self) -> bool {
+        matches!(self, Self::Forwards) || matches!(self, Self::StoppedForwards)
+    }
+}
+
 pub trait SingleEncoder: Encoder {
-    fn set_direction(&mut self, forwards: bool) -> anyhow::Result<()>;
+    fn set_direction(&mut self, dir: Direction) -> anyhow::Result<()>;
+    fn get_direction(&self) -> anyhow::Result<Direction>;
 }
 
 pub(crate) type EncoderType = Arc<Mutex<dyn Encoder>>;
@@ -268,8 +283,12 @@ impl<A> SingleEncoder for Mutex<A>
 where
     A: ?Sized + SingleEncoder,
 {
-    fn set_direction(&mut self, forwards: bool) -> anyhow::Result<()> {
-        self.get_mut().unwrap().set_direction(forwards)
+    fn set_direction(&mut self, dir: Direction) -> anyhow::Result<()> {
+        self.get_mut().unwrap().set_direction(dir)
+    }
+
+    fn get_direction(&self) -> anyhow::Result<Direction> {
+        self.lock().unwrap().get_direction()
     }
 }
 
@@ -277,7 +296,11 @@ impl<A> SingleEncoder for Arc<Mutex<A>>
 where
     A: ?Sized + SingleEncoder,
 {
-    fn set_direction(&mut self, forwards: bool) -> anyhow::Result<()> {
-        self.lock().unwrap().set_direction(forwards)
+    fn set_direction(&mut self, dir: Direction) -> anyhow::Result<()> {
+        self.lock().unwrap().set_direction(dir)
+    }
+
+    fn get_direction(&self) -> anyhow::Result<Direction> {
+        self.lock().unwrap().get_direction()
     }
 }

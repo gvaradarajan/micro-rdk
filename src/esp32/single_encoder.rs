@@ -5,7 +5,7 @@ use super::pin::PinExt;
 use super::pulse_counter::{get_unit, isr_install, isr_uninstall, isr_installed};
 
 use crate::common::encoder::{
-    Encoder, EncoderPosition, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder
+    Encoder, EncoderPosition, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder, Direction
 };
 
 use core::ffi::{c_short, c_ulong};
@@ -32,7 +32,7 @@ pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder>>;
 pub struct Esp32SingleEncoder {
     pulse_counter: Box<PulseStorage>,
     config: pcnt_config_t,
-    forwards: bool,
+    dir: Direction,
 }
 
 impl Esp32SingleEncoder {
@@ -57,7 +57,8 @@ impl Esp32SingleEncoder {
                 channel: pcnt_channel_0,
                 unit,
             },
-            forwards: true,
+            dir: Direction::StoppedForwards
+
         };
         enc.setup_pcnt()?;
         enc.start()?;
@@ -102,9 +103,9 @@ impl Esp32SingleEncoder {
                 err => return Err(EspError::from(err).unwrap().into()),
             }
         }
-        let sign: i32 = match self.forwards {
-            true => 1,
-            false => -1,
+        let sign: i32 = match self.dir {
+            Direction::Forwards | Direction::StoppedForwards => 1,
+            Direction::Backwards | Direction::StoppedBackwards => -1,
         };
         let tot = self.pulse_counter.acc.load(Ordering::Relaxed) * 100 + (i32::from(ctr) * sign);
         Ok(tot)
@@ -205,18 +206,38 @@ impl Encoder for Esp32SingleEncoder {
 }
 
 impl SingleEncoder for Esp32SingleEncoder {
-    fn set_direction(&mut self, forwards: bool) -> anyhow::Result<()> {
+    fn get_direction(&self) -> anyhow::Result<Direction> {
+        Ok(self.dir)
+    }
+    fn set_direction(&mut self, dir: Direction) -> anyhow::Result<()> {
         let mut reconfigure = false;
-        if self.forwards && !forwards {
-            self.config.neg_mode = pcnt_count_inc;
-            self.config.pos_mode = pcnt_count_inc;
-            reconfigure = true;
-        } else if !self.forwards && forwards {
-            self.config.neg_mode = pcnt_count_dec;
-            self.config.pos_mode = pcnt_count_dec;
-            reconfigure = true;
-        }
-        self.forwards = forwards;
+        // if self.forwards && !forwards {
+        //     self.config.neg_mode = pcnt_count_inc;
+        //     self.config.pos_mode = pcnt_count_inc;
+        //     reconfigure = true;
+        // } else if !self.forwards && forwards {
+        //     self.config.neg_mode = pcnt_count_dec;
+        //     self.config.pos_mode = pcnt_count_dec;
+        //     reconfigure = true;
+        // }
+        match dir {
+            Direction::Forwards | Direction::StoppedForwards => {
+                if !self.dir.is_forwards() {
+                    self.config.neg_mode = pcnt_count_inc;
+                    self.config.pos_mode = pcnt_count_inc;
+                    reconfigure = true;
+                }
+            },
+            Direction::Backwards | Direction::StoppedBackwards => {
+                if self.dir.is_forwards() {
+                    self.config.neg_mode = pcnt_count_dec;
+                    self.config.pos_mode = pcnt_count_dec;
+                    reconfigure = true;
+                }
+            }
+        };
+
+        // self.forwards = forwards;
         println!("reconfigured: {:?}", reconfigure);
         if reconfigure && isr_installed() {
             unsafe {
