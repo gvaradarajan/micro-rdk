@@ -217,7 +217,7 @@ impl SingleEncoder for Esp32SingleEncoder {
             reconfigure = true;
         }
         self.forwards = forwards;
-        if reconfigure {
+        if reconfigure && isr_installed() {
             unsafe {
                 match esp_idf_sys::pcnt_counter_pause(self.config.unit) {
                     ESP_OK => {}
