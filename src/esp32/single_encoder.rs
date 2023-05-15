@@ -217,6 +217,7 @@ impl SingleEncoder for Esp32SingleEncoder {
             reconfigure = true;
         }
         self.forwards = forwards;
+        println!("reconfigured: {:?}", reconfigure);
         if reconfigure && isr_installed() {
             unsafe {
                 match esp_idf_sys::pcnt_counter_pause(self.config.unit) {
@@ -269,6 +270,7 @@ impl Status for Esp32SingleEncoder {
 impl Drop for Esp32SingleEncoder {
     fn drop(&mut self) {
         if isr_installed() {
+            println!("dropping encoder");
             unsafe {
                 esp_idf_sys::pcnt_isr_handler_remove(self.config.unit);
             }
