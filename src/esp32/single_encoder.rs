@@ -17,7 +17,7 @@ use espsys::pcnt_channel_t_PCNT_CHANNEL_0 as pcnt_channel_0;
 use espsys::pcnt_config_t;
 use espsys::pcnt_evt_type_t_PCNT_EVT_H_LIM as pcnt_evt_h_lim;
 use espsys::pcnt_evt_type_t_PCNT_EVT_L_LIM as pcnt_evt_l_lim;
-use espsys::{esp, EspError, ESP_OK};
+use espsys::{esp, EspError, ESP_OK, ESP_ERR_INVALID_STATE};
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicI32, Ordering};
