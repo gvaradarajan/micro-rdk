@@ -265,6 +265,16 @@ impl SingleEncoder for Esp32SingleEncoder {
             // esp!(unsafe {
             //     esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
             // })?;
+            unsafe {
+                match esp_idf_sys::pcnt_set_filter_value(self.config.unit, 1 * 80) {
+                    ESP_OK => {}
+                    err => return Err(EspError::from(err).unwrap().into())
+                }
+                match esp_idf_sys::pcnt_filter_enable(self.config.unit) {
+                    ESP_OK => {}
+                    err => return Err(EspError::from(err).unwrap().into())
+                }
+            }
             println!("flipping for unit: {:?}", self.config.unit);
             match self.dir {
                 x if x.is_forwards() => {
