@@ -133,7 +133,7 @@ impl Esp32SingleEncoder {
 
         isr_install(self.config.unit as i32)?;
 
-        match dir {
+        match self.dir {
             Direction::Forwards | Direction::StoppedForwards => {
                 esp!(unsafe {
                     esp_idf_sys::pcnt_isr_handler_add(
