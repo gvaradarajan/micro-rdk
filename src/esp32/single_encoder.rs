@@ -36,7 +36,7 @@ pub struct Esp32SingleEncoder {
 }
 
 impl Esp32SingleEncoder {
-    pub fn new(encoder_pin: impl InputPin + PinExt) -> anyhow::Result<Self> {
+    pub fn new(encoder_pin: impl InputPin + PinExt, dir_flip: bool) -> anyhow::Result<Self> {
         let unit = get_unit()?;
         println!("unit received: {:?}", unit);
         let pcnt = Box::new(PulseStorage {
@@ -59,6 +59,9 @@ impl Esp32SingleEncoder {
             },
             dir: Direction::StoppedForwards
         };
+        if dir_flip {
+            enc.dir = Direction::StoppedBackwards
+        }
         enc.setup_pcnt()?;
         enc.start()?;
         Ok(enc)
@@ -130,13 +133,34 @@ impl Esp32SingleEncoder {
 
         isr_install(self.config.unit as i32)?;
 
-        esp!(unsafe {
-            esp_idf_sys::pcnt_isr_handler_add(
-                self.config.unit,
-                Some(Self::irq_handler_increment),
-                self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-            )
-        })?;
+        match dir {
+            Direction::Forwards | Direction::StoppedForwards => {
+                esp!(unsafe {
+                    esp_idf_sys::pcnt_isr_handler_add(
+                        self.config.unit,
+                        Some(Self::irq_handler_increment),
+                        self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+                    )
+                })?;
+            },
+            Direction::Backwards | Direction::StoppedBackwards => {
+                esp!(unsafe {
+                    esp_idf_sys::pcnt_isr_handler_add(
+                        self.config.unit,
+                        Some(Self::irq_handler_decrement),
+                        self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+                    )
+                })?;
+            }
+        };
+
+        // esp!(unsafe {
+        //     esp_idf_sys::pcnt_isr_handler_add(
+        //         self.config.unit,
+        //         Some(Self::irq_handler_increment),
+        //         self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+        //     )
+        // })?;
 
         unsafe {
             match esp_idf_sys::pcnt_set_filter_value(self.config.unit, 1 * 80) {
@@ -262,9 +286,6 @@ impl SingleEncoder for Esp32SingleEncoder {
                     err => return Err(EspError::from(err).unwrap().into()),
                 }
             }
-            // esp!(unsafe {
-            //     esp_idf_sys::pcnt_isr_handler_remove(self.config.unit)
-            // })?;
             unsafe {
                 match esp_idf_sys::pcnt_set_filter_value(self.config.unit, 1 * 80) {
                     ESP_OK => {}
