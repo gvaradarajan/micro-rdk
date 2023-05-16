@@ -139,6 +139,17 @@ impl Esp32SingleEncoder {
         })?;
 
         unsafe {
+            match esp_idf_sys::pcnt_set_filter_value(self.config.unit, 2 * 80) {
+                ESP_OK => {}
+                err => return Err(EspError::from(err).unwrap().into())
+            }
+            match esp_idf_sys::pcnt_filter_enable(self.config.unit) {
+                ESP_OK => {}
+                err => return Err(EspError::from(err).unwrap().into())
+            }
+        }
+
+        unsafe {
             match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_h_lim) {
                 ESP_OK => {}
                 err => return Err(EspError::from(err).unwrap().into()),
@@ -236,7 +247,6 @@ impl SingleEncoder for Esp32SingleEncoder {
             }
         };
         self.dir = dir;
-        // self.forwards = forwards;
         println!("reconfigured: {:?}", reconfigure);
         let isr_is_installed = isr_installed();
         println!("isr_installed: {:?}", isr_is_installed);
