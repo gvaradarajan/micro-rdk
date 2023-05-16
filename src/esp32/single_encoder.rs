@@ -139,7 +139,7 @@ impl Esp32SingleEncoder {
         })?;
 
         unsafe {
-            match esp_idf_sys::pcnt_set_filter_value(self.config.unit, 10 * 80) {
+            match esp_idf_sys::pcnt_set_filter_value(self.config.unit, 1 * 80) {
                 ESP_OK => {}
                 err => return Err(EspError::from(err).unwrap().into())
             }
