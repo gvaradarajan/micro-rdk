@@ -32,7 +32,7 @@ impl Motor for SingleEncodedMotor {
                     Direction::Forwards | Direction::StoppedForwards => Direction::StoppedForwards,
                 }
             }
-            _ => anyhow::bail!("how did we get here?"),
+            _ => unreachable!(),
         };
         self.motor.set_power(power_pct)?;
         self.encoder.set_direction(dir)
