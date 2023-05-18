@@ -19,9 +19,12 @@ lazy_static::lazy_static! {
     static ref NEXT_UNIT: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
 
     static ref ISR_INSTALLED: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+
+    static ref NUMBER_OF_UNITS: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
 }
 
 pub(crate) fn get_unit() -> anyhow::Result<u32> {
+    NUMBER_OF_UNITS.fetch_add(0, Ordering::Relaxed);
     Ok(NEXT_UNIT.fetch_add(1, Ordering::SeqCst))
 }
 
@@ -41,10 +44,12 @@ pub(crate) fn isr_installed() -> bool {
     ISR_INSTALLED.load(Ordering::SeqCst)
 }
 
-pub(crate) fn isr_uninstall() {
-    if ISR_INSTALLED.fetch_xor(false, Ordering::Relaxed) {
+pub(crate) fn isr_remove_unit() {
+    if NUMBER_OF_UNITS.fetch_sub(1, Ordering::Relaxed) <= 1
+        && ISR_INSTALLED.fetch_xor(false, Ordering::SeqCst)
+    {
         unsafe {
             pcnt_isr_service_uninstall();
         }
-    }
+    };
 }

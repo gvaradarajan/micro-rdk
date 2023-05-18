@@ -1,8 +1,7 @@
 use embedded_hal::digital::v2::InputPin;
 
-use super::encoder::PulseStorage;
 use super::pin::PinExt;
-use super::pulse_counter::{get_unit, isr_install, isr_installed, isr_uninstall};
+use super::pulse_counter::{get_unit, isr_install, isr_installed, isr_remove_unit};
 
 use crate::common::encoder::{
     Direction, Encoder, EncoderPosition, EncoderPositionType, EncoderSupportedRepresentations,
@@ -21,7 +20,7 @@ use espsys::pcnt_evt_type_t_PCNT_EVT_L_LIM as pcnt_evt_l_lim;
 use espsys::{esp, EspError, ESP_OK};
 
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::common::status::Status;
@@ -32,6 +31,12 @@ const MAX_GLITCH_MICROSEC: u16 = 1;
 // TODO: Move this type to common once we have a single encoder
 // implementation for another board
 pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder>>;
+
+struct PulseStorage {
+    acc: Arc<AtomicI32>,
+    unit: u32,
+    moving_forwards: Arc<AtomicBool>,
+}
 
 pub struct Esp32SingleEncoder {
     pulse_counter: Box<PulseStorage>,
@@ -46,6 +51,7 @@ impl Esp32SingleEncoder {
         let pcnt = Box::new(PulseStorage {
             acc: Arc::new(AtomicI32::new(0)),
             unit,
+            moving_forwards: Arc::new(AtomicBool::new(true)),
         });
         let mut enc = Esp32SingleEncoder {
             pulse_counter: pcnt,
@@ -137,26 +143,13 @@ impl Esp32SingleEncoder {
 
         isr_install()?;
 
-        match self.dir {
-            Direction::Forwards | Direction::StoppedForwards => {
-                esp!(unsafe {
-                    esp_idf_sys::pcnt_isr_handler_add(
-                        self.config.unit,
-                        Some(Self::irq_handler_increment),
-                        self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-                    )
-                })?;
-            }
-            Direction::Backwards | Direction::StoppedBackwards => {
-                esp!(unsafe {
-                    esp_idf_sys::pcnt_isr_handler_add(
-                        self.config.unit,
-                        Some(Self::irq_handler_decrement),
-                        self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-                    )
-                })?;
-            }
-        };
+        esp!(unsafe {
+            esp_idf_sys::pcnt_isr_handler_add(
+                self.config.unit,
+                Some(Self::irq_handler),
+                self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
+            )
+        })?;
 
         unsafe {
             match esp_idf_sys::pcnt_set_filter_value(self.config.unit, MAX_GLITCH_MICROSEC * 80) {
@@ -185,28 +178,15 @@ impl Esp32SingleEncoder {
 
     #[inline(always)]
     #[link_section = ".iram1.pcnt_srv"]
-    unsafe extern "C" fn irq_handler_increment(arg: *mut core::ffi::c_void) {
+    unsafe extern "C" fn irq_handler(arg: *mut core::ffi::c_void) {
         let arg: &mut PulseStorage = &mut *(arg as *mut _);
         let mut status = 0;
         esp_idf_sys::pcnt_get_event_status(arg.unit, &mut status as *mut c_ulong);
-        if status & pcnt_evt_h_lim != 0 {
-            arg.acc.fetch_add(1, Ordering::SeqCst);
-        }
-        if status & pcnt_evt_l_lim != 0 {
-            arg.acc.fetch_add(1, Ordering::SeqCst);
-        }
-    }
-
-    #[inline(always)]
-    #[link_section = ".iram1.pcnt_srv"]
-    unsafe extern "C" fn irq_handler_decrement(arg: *mut core::ffi::c_void) {
-        let arg: &mut PulseStorage = &mut *(arg as *mut _);
-        let mut status = 0;
-        esp_idf_sys::pcnt_get_event_status(arg.unit, &mut status as *mut c_ulong);
-        if status & pcnt_evt_h_lim != 0 {
-            arg.acc.fetch_sub(1, Ordering::SeqCst);
-        }
-        if status & pcnt_evt_l_lim != 0 {
+        if arg.moving_forwards.load(Ordering::Relaxed) {
+            if status & pcnt_evt_h_lim != 0 {
+                arg.acc.fetch_add(1, Ordering::SeqCst);
+            }
+        } else if status & pcnt_evt_l_lim != 0 {
             arg.acc.fetch_sub(1, Ordering::SeqCst);
         }
     }
@@ -247,6 +227,9 @@ impl SingleEncoder for Esp32SingleEncoder {
                     self.config.neg_mode = pcnt_count_inc;
                     self.config.pos_mode = pcnt_count_inc;
                     reconfigure = true;
+                    self.pulse_counter
+                        .moving_forwards
+                        .store(true, Ordering::Relaxed);
                 }
             }
             Direction::Backwards | Direction::StoppedBackwards => {
@@ -254,6 +237,9 @@ impl SingleEncoder for Esp32SingleEncoder {
                     self.config.neg_mode = pcnt_count_dec;
                     self.config.pos_mode = pcnt_count_dec;
                     reconfigure = true;
+                    self.pulse_counter
+                        .moving_forwards
+                        .store(false, Ordering::Relaxed);
                 }
             }
         };
@@ -282,26 +268,7 @@ impl SingleEncoder for Esp32SingleEncoder {
                     err => return Err(EspError::from(err).unwrap().into()),
                 }
             }
-            match self.dir {
-                x if x.is_forwards() => {
-                    esp!(unsafe {
-                        esp_idf_sys::pcnt_isr_handler_add(
-                            self.config.unit,
-                            Some(Self::irq_handler_increment),
-                            self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-                        )
-                    })?;
-                }
-                _ => {
-                    esp!(unsafe {
-                        esp_idf_sys::pcnt_isr_handler_add(
-                            self.config.unit,
-                            Some(Self::irq_handler_decrement),
-                            self.pulse_counter.as_mut() as *mut PulseStorage as *mut _,
-                        )
-                    })?;
-                }
-            }
+
             unsafe {
                 match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_h_lim) {
                     ESP_OK => {}
@@ -335,7 +302,7 @@ impl Drop for Esp32SingleEncoder {
             unsafe {
                 esp_idf_sys::pcnt_isr_handler_remove(self.config.unit);
             }
-            isr_uninstall();
+            isr_remove_unit();
         }
     }
 }

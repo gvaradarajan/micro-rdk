@@ -1,5 +1,5 @@
 use super::pin::PinExt;
-use super::pulse_counter::{get_unit, isr_install, isr_uninstall};
+use super::pulse_counter::{get_unit, isr_install, isr_remove_unit};
 
 use core::ffi::{c_short, c_ulong};
 use esp_idf_hal::gpio::{AnyInputPin, Input, PinDriver};
@@ -278,6 +278,6 @@ where
 
 impl<A, B> Drop for Esp32Encoder<A, B> {
     fn drop(&mut self) {
-        isr_uninstall();
+        isr_remove_unit();
     }
 }

@@ -35,6 +35,7 @@ impl Motor for SingleEncodedMotor {
             _ => unreachable!(),
         };
         self.motor.set_power(power_pct)?;
+        println!("set power in encoded motor");
         self.encoder.set_direction(dir)
     }
 
