@@ -220,70 +220,96 @@ impl SingleEncoder for Esp32SingleEncoder {
         Ok(self.dir)
     }
     fn set_direction(&mut self, dir: Direction) -> anyhow::Result<()> {
-        let mut reconfigure = false;
+        // let mut reconfigure = false;
         match dir {
             Direction::Forwards | Direction::StoppedForwards => {
                 if !self.dir.is_forwards() {
-                    self.config.neg_mode = pcnt_count_inc;
-                    self.config.pos_mode = pcnt_count_inc;
-                    reconfigure = true;
+                    // self.config.neg_mode = pcnt_count_inc;
+                    // self.config.pos_mode = pcnt_count_inc;
+                    // reconfigure = true;
                     self.pulse_counter
                         .moving_forwards
                         .store(true, Ordering::Relaxed);
+                    unsafe {
+                        match esp_idf_sys::pcnt_set_mode(
+                            self.config.unit, 
+                            self.config.channel,
+                            pcnt_count_inc,
+                            pcnt_count_inc,
+                            self.config.hctrl_mode,
+                            self.config.lctrl_mode
+                        ) {
+                            ESP_OK => {}
+                            err => return Err(EspError::from(err).unwrap().into())
+                        }
+                    }
                 }
             }
             Direction::Backwards | Direction::StoppedBackwards => {
                 if self.dir.is_forwards() {
-                    self.config.neg_mode = pcnt_count_dec;
-                    self.config.pos_mode = pcnt_count_dec;
-                    reconfigure = true;
+                    // self.config.neg_mode = pcnt_count_dec;
+                    // self.config.pos_mode = pcnt_count_dec;
+                    // reconfigure = true;
                     self.pulse_counter
                         .moving_forwards
                         .store(false, Ordering::Relaxed);
+                    unsafe {
+                        match esp_idf_sys::pcnt_set_mode(
+                            self.config.unit, 
+                            self.config.channel,
+                            pcnt_count_dec,
+                            pcnt_count_dec,
+                            self.config.hctrl_mode,
+                            self.config.lctrl_mode
+                        ) {
+                            ESP_OK => {}
+                            err => return Err(EspError::from(err).unwrap().into())
+                        }
+                    }
                 }
             }
         };
         self.dir = dir;
-        let isr_is_installed = isr_installed();
-        if reconfigure && isr_is_installed {
-            unsafe {
-                match esp_idf_sys::pcnt_counter_pause(self.config.unit) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
+        // let isr_is_installed = isr_installed();
+        // if reconfigure && isr_is_installed {
+        //     unsafe {
+        //         match esp_idf_sys::pcnt_counter_pause(self.config.unit) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
 
-                match esp_idf_sys::pcnt_unit_config(&self.config as *const pcnt_config_t) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-            }
-            unsafe {
-                match esp_idf_sys::pcnt_set_filter_value(self.config.unit, MAX_GLITCH_MICROSEC * 80)
-                {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-                match esp_idf_sys::pcnt_filter_enable(self.config.unit) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-            }
+        //         match esp_idf_sys::pcnt_unit_config(&self.config as *const pcnt_config_t) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //     }
+        //     unsafe {
+        //         match esp_idf_sys::pcnt_set_filter_value(self.config.unit, MAX_GLITCH_MICROSEC * 80)
+        //         {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //         match esp_idf_sys::pcnt_filter_enable(self.config.unit) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //     }
 
-            unsafe {
-                match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_h_lim) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-                match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_l_lim) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-                match esp_idf_sys::pcnt_counter_resume(self.config.unit) {
-                    ESP_OK => {}
-                    err => return Err(EspError::from(err).unwrap().into()),
-                }
-            }
-        }
+        //     unsafe {
+        //         match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_h_lim) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //         match esp_idf_sys::pcnt_event_enable(self.config.unit, pcnt_evt_l_lim) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //         match esp_idf_sys::pcnt_counter_resume(self.config.unit) {
+        //             ESP_OK => {}
+        //             err => return Err(EspError::from(err).unwrap().into()),
+        //         }
+        //     }
+        // }
         Ok(())
     }
 }
