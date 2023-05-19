@@ -230,6 +230,7 @@ impl SingleEncoder for Esp32SingleEncoder {
                     self.pulse_counter
                         .moving_forwards
                         .store(true, Ordering::Relaxed);
+                    self.stop()?;
                     unsafe {
                         match esp_idf_sys::pcnt_set_mode(
                             self.config.unit, 
@@ -243,6 +244,7 @@ impl SingleEncoder for Esp32SingleEncoder {
                             err => return Err(EspError::from(err).unwrap().into())
                         }
                     }
+                    self.start()?;
                 }
             }
             Direction::Backwards | Direction::StoppedBackwards => {
@@ -253,6 +255,7 @@ impl SingleEncoder for Esp32SingleEncoder {
                     self.pulse_counter
                         .moving_forwards
                         .store(false, Ordering::Relaxed);
+                    self.stop()?;
                     unsafe {
                         match esp_idf_sys::pcnt_set_mode(
                             self.config.unit, 
@@ -266,6 +269,7 @@ impl SingleEncoder for Esp32SingleEncoder {
                             err => return Err(EspError::from(err).unwrap().into())
                         }
                     }
+                    self.start()?
                 }
             }
         };
