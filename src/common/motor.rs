@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use super::board::BoardType;
-use super::config::{AttributeError, Component, ConfigType, Kind};
+use super::config::{AttributeError, ConfigType, Kind};
 use super::registry::ComponentRegistry;
 use super::stop::Stoppable;
 
@@ -91,14 +91,9 @@ impl FakeMotor {
         }
     }
     pub(crate) fn from_config(cfg: ConfigType, _: Option<BoardType>) -> anyhow::Result<MotorType> {
-        match cfg {
-            ConfigType::Static(cfg) => {
-                if let Ok(pos) = cfg.get_attribute::<f64>("fake_position") {
-                    return Ok(Arc::new(Mutex::new(FakeMotor { pos, power: 0.0 })));
-                }
-            }
-        };
-
+        if let Ok(pos) = cfg.get_attribute::<f64>("fake_position") {
+            return Ok(Arc::new(Mutex::new(FakeMotor { pos, power: 0.0 })));
+        }
         Ok(Arc::new(Mutex::new(FakeMotor::new())))
     }
 }

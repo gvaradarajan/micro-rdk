@@ -6,6 +6,7 @@ use crate::common::motor::{Motor, MotorType};
 
 use crate::common::status::Status;
 use crate::common::stop::Stoppable;
+
 use std::collections::BTreeMap;
 
 pub struct SingleEncodedMotor {
@@ -36,7 +37,7 @@ impl Motor for SingleEncodedMotor {
             _ => unreachable!(),
         };
         self.motor.set_power(power_pct)?;
-        println!("set power in encoded motor");
+        log::debug!("set power in single encoded motor to {:?}", power_pct);
         self.encoder.set_direction(dir)
     }
 

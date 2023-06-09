@@ -118,7 +118,7 @@ impl<'a> AppClientBuilder<'a> {
             ip: self.config.ip,
         })
     }
-    fn get_jwt_token(&mut self) -> Result<String, AppClientError> {
+    pub fn get_jwt_token(&mut self) -> Result<String, AppClientError> {
         let r = self
             .grpc_client
             .build_request("/proto.rpc.v1.AuthService/Authenticate", None, "")
@@ -170,6 +170,55 @@ impl<'a> AppClientBuilder<'a> {
 
         Ok(Box::new(ConfigResponse::decode(r)?))
     }
+}
+
+pub fn fetch_config(grpc_client: &mut GrpcClient, app_client_conf: &AppClientConfig) -> Result<Box<ConfigResponse>, AppClientError> {
+    let auth_req = grpc_client
+        .build_request("/proto.rpc.v1.AuthService/Authenticate", None, "")
+        .map_err(AppClientError::AppOtherError)?;
+
+    let cred = Credentials {
+        r#type: "robot-secret".to_owned(),
+        payload: app_client_conf.robot_secret.clone(),
+    };
+
+    let a_req = AuthenticateRequest {
+        entity: app_client_conf.robot_id.clone(),
+        credentials: Some(cred),
+    };
+
+    let body = encode_request(a_req)?;
+
+    let mut auth_resp = grpc_client
+        .send_request(auth_req, body)
+        .map_err(AppClientError::AppOtherError)?;
+    let auth_resp = auth_resp.split_off(5);
+    let auth_resp = AuthenticateResponse::decode(auth_resp).map_err(AppClientError::AppDecodeError)?;
+
+    let jwt: &str = &format!("Bearer {}", auth_resp.access_token);
+
+    let config_req = grpc_client
+        .build_request("/viam.app.v1.RobotService/Config", Some(jwt), "")
+        .map_err(AppClientError::AppOtherError)?;
+
+    let agent = AgentInfo {
+        os: "esp32".to_string(),
+        host: "esp32".to_string(),
+        ips: vec![app_client_conf.ip.to_string()],
+        version: "0.0.2".to_string(),
+        git_revision: "".to_string(),
+    };
+
+    let c_req = ConfigRequest {
+        agent_info: Some(agent),
+        id: app_client_conf.robot_id.clone(),
+    };
+    let body = encode_request(c_req)?;
+
+    let mut r = grpc_client.send_request(config_req, body)?;
+    let r = r.split_off(5);
+
+    Ok(Box::new(ConfigResponse::decode(r)?))
 }
 
 pub struct AppClient<'a> {

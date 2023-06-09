@@ -22,15 +22,15 @@ lazy_static::lazy_static! {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum RegistryError {
-    ModelNotFound,
+    ModelNotFound(String),
     ModelAlreadyRegistered(&'static str),
 }
 
 impl fmt::Display for RegistryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RegistryError::ModelNotFound => {
-                write!(f, "RegistryError : Model not found")
+            RegistryError::ModelNotFound(model) => {
+                write!(f, "RegistryError : Model '{model}' not found")
             }
             RegistryError::ModelAlreadyRegistered(model) => {
                 write!(f, "RegistryError : model {model} already exists")
@@ -146,7 +146,7 @@ impl ComponentRegistry {
         if let Some(ctor) = self.motors.get(model) {
             return Ok(*ctor);
         }
-        Err(RegistryError::ModelNotFound)
+        Err(RegistryError::ModelNotFound(model.to_string()))
     }
 
     pub(crate) fn get_board_constructor(
@@ -156,7 +156,7 @@ impl ComponentRegistry {
         if let Some(ctor) = self.board.get(model) {
             return Ok(*ctor);
         }
-        Err(RegistryError::ModelNotFound)
+        Err(RegistryError::ModelNotFound(model.to_string()))
     }
     pub(crate) fn get_sensor_constructor(
         &self,
@@ -165,7 +165,7 @@ impl ComponentRegistry {
         if let Some(ctor) = self.sensor.get(model) {
             return Ok(*ctor);
         }
-        Err(RegistryError::ModelNotFound)
+        Err(RegistryError::ModelNotFound(model.to_string()))
     }
 
     pub(crate) fn get_movement_sensor_constructor(
@@ -175,7 +175,7 @@ impl ComponentRegistry {
         if let Some(ctor) = self.movement_sensors.get(model) {
             return Ok(*ctor);
         }
-        Err(RegistryError::ModelNotFound)
+        Err(RegistryError::ModelNotFound(model.to_string()))
     }
 
     pub(crate) fn get_encoder_constructor(
@@ -185,7 +185,61 @@ impl ComponentRegistry {
         if let Some(ctor) = self.encoders.get(model) {
             return Ok(*ctor);
         }
-        Err(RegistryError::ModelNotFound)
+        Err(RegistryError::ModelNotFound(model.to_string()))
+    }
+
+    pub(crate) fn get_motor_constructor_dyn(
+        &self,
+        model: String,
+    ) -> Result<&'static MotorConstructor, RegistryError> {
+        let model_name: &str = &model;
+        if let Some(ctor) = self.motors.get(model_name) {
+            return Ok(*ctor);
+        }
+        Err(RegistryError::ModelNotFound(model))
+    }
+
+    pub(crate) fn get_board_constructor_dyn(
+        &self,
+        model: String,
+    ) -> Result<&'static BoardConstructor, RegistryError> {
+        let model_name: &str = &model;
+        if let Some(ctor) = self.board.get(model_name) {
+            return Ok(*ctor);
+        }
+        Err(RegistryError::ModelNotFound(model))
+    }
+    pub(crate) fn get_sensor_constructor_dyn(
+        &self,
+        model: String,
+    ) -> Result<&'static SensorConstructor, RegistryError> {
+        let model_name: &str = &model;
+        if let Some(ctor) = self.sensor.get(model_name) {
+            return Ok(*ctor);
+        }
+        Err(RegistryError::ModelNotFound(model))
+    }
+
+    pub(crate) fn get_movement_sensor_constructor_dyn(
+        &self,
+        model: String,
+    ) -> Result<&'static MovementSensorConstructor, RegistryError> {
+        let model_name: &str = &model;
+        if let Some(ctor) = self.movement_sensors.get(model_name) {
+            return Ok(*ctor);
+        }
+        Err(RegistryError::ModelNotFound(model))
+    }
+
+    pub(crate) fn get_encoder_constructor_dyn(
+        &self,
+        model: String,
+    ) -> Result<&'static EncoderConstructor, RegistryError> {
+        let model_name: &str = &model;
+        if let Some(ctor) = self.encoders.get(model_name) {
+            return Ok(*ctor);
+        }
+        Err(RegistryError::ModelNotFound(model))
     }
 }
 
@@ -200,7 +254,7 @@ mod tests {
 
         let ctor = registry.get_motor_constructor("fake");
         assert!(ctor.is_err());
-        assert_eq!(ctor.err().unwrap(), RegistryError::ModelNotFound);
+        assert_eq!(ctor.err().unwrap(), RegistryError::ModelNotFound("fake".to_string()));
         common::motor::register_models(&mut registry);
 
         let ctor = registry.get_motor_constructor("fake");
@@ -218,7 +272,7 @@ mod tests {
 
         let ctor = registry.get_board_constructor("fake");
         assert!(ctor.is_err());
-        assert_eq!(ctor.err().unwrap(), RegistryError::ModelNotFound);
+        assert_eq!(ctor.err().unwrap(), RegistryError::ModelNotFound("fake".to_string()));
         common::board::register_models(&mut registry);
 
         let ctor = registry.get_board_constructor("fake");

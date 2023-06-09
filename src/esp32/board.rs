@@ -3,7 +3,6 @@ use crate::common::analog::AnalogReader;
 use crate::common::analog::AnalogReaderConfig;
 use crate::common::board::Board;
 use crate::common::board::BoardType;
-use crate::common::config::Component;
 use crate::common::config::ConfigType;
 use crate::common::i2c::I2cHandleType;
 use crate::common::registry::ComponentRegistry;
@@ -58,165 +57,162 @@ impl EspBoard {
     /// Down the road we will need to wrap the Esp32Board in a singleton instance owning the peripherals and giving them as requested.
     /// The potential approach is described in esp32/motor.rs:383
     pub(crate) fn from_config(cfg: ConfigType) -> anyhow::Result<BoardType> {
-        let (analogs, pins, i2c_confs) = match cfg {
-            ConfigType::Static(cfg) => {
-                let analogs = if let Ok(analogs) =
-                    cfg.get_attribute::<Vec<AnalogReaderConfig>>("analogs")
-                {
-                    let analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>> =
-                        analogs
-                            .iter()
-                            .filter_map(|v| {
-                                let adc1 = Rc::new(RefCell::new(
-                                    AdcDriver::new(
-                                        unsafe { ADC1::new() },
-                                        &Config::new().calibration(true),
-                                    )
-                                    .ok()?,
-                                ));
-                                let chan: Rc<
-                                    RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                > = match v.pin {
-                                    32 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
-                                            v.name.to_string(),
-                                            AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
-                                                esp_idf_hal::gpio::Gpio32::new()
-                                            })
-                                            .ok()?,
-                                            adc1,
-                                        )));
-                                        Some(p)
-                                    }
-                                    33 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
-                                            v.name.to_string(),
-                                            AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
-                                                esp_idf_hal::gpio::Gpio33::new()
-                                            })
-                                            .ok()?,
-                                            adc1,
-                                        )));
-                                        Some(p)
-                                    }
-                                    34 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
-                                            v.name.to_string(),
-                                            AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
-                                                esp_idf_hal::gpio::Gpio34::new()
-                                            })
-                                            .ok()?,
-                                            adc1,
-                                        )));
-                                        Some(p)
-                                    }
-                                    35 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
-                                            v.name.to_string(),
-                                            AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
-                                                esp_idf_hal::gpio::Gpio35::new()
-                                            })
-                                            .ok()?,
-                                            adc1,
-                                        )));
-                                        Some(p)
-                                    }
-                                    36 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
-                                            v.name.to_string(),
-                                            AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
-                                                esp_idf_hal::gpio::Gpio36::new()
-                                            })
-                                            .ok()?,
-                                            adc1,
-                                        )));
-                                        Some(p)
-                                    }
-                                    37 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
-                                            v.name.to_string(),
-                                            AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
-                                                esp_idf_hal::gpio::Gpio37::new()
-                                            })
-                                            .ok()?,
-                                            adc1,
-                                        )));
-                                        Some(p)
-                                    }
-                                    38 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
-                                            v.name.to_string(),
-                                            AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
-                                                esp_idf_hal::gpio::Gpio38::new()
-                                            })
-                                            .ok()?,
-                                            adc1,
-                                        )));
-                                        Some(p)
-                                    }
-                                    39 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
-                                            v.name.to_string(),
-                                            AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
-                                                esp_idf_hal::gpio::Gpio39::new()
-                                            })
-                                            .ok()?,
-                                            adc1,
-                                        )));
-                                        Some(p)
-                                    }
-                                    _ => {
-                                        log::error!("pin {} is not an ADC1 pin", v.pin);
-                                        None
-                                    }
-                                }?;
-
-                                Some(chan)
-                            })
-                            .collect();
+        let (analogs, pins, i2c_confs) = {
+            let analogs = if let Ok(analogs) = cfg.get_attribute::<Vec<AnalogReaderConfig>>("analogs")
+            {
+                let analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>> =
                     analogs
-                } else {
-                    vec![]
-                };
-                let pins = if let Ok(pins) = cfg.get_attribute::<Vec<i32>>("pins") {
-                    pins.iter()
-                        .filter_map(|pin| {
-                            let p = PinDriver::input_output(unsafe { AnyIOPin::new(*pin) });
-                            if let Ok(p) = p {
-                                Some(p)
-                            } else {
-                                None
-                            }
-                        })
-                        .collect()
-                } else {
-                    vec![]
-                };
+                        .iter()
+                        .filter_map(|v| {
+                            let adc1 = Rc::new(RefCell::new(
+                                AdcDriver::new(
+                                    unsafe { ADC1::new() },
+                                    &Config::new().calibration(true),
+                                )
+                                .ok()?,
+                            ));
+                            let chan: Rc<
+                                RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                            > = match v.pin {
+                                32 => {
+                                    let p: Rc<
+                                        RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                                    > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        v.name.to_string(),
+                                        AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
+                                            esp_idf_hal::gpio::Gpio32::new()
+                                        })
+                                        .ok()?,
+                                        adc1,
+                                    )));
+                                    Some(p)
+                                }
+                                33 => {
+                                    let p: Rc<
+                                        RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                                    > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        v.name.to_string(),
+                                        AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
+                                            esp_idf_hal::gpio::Gpio33::new()
+                                        })
+                                        .ok()?,
+                                        adc1,
+                                    )));
+                                    Some(p)
+                                }
+                                34 => {
+                                    let p: Rc<
+                                        RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                                    > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        v.name.to_string(),
+                                        AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
+                                            esp_idf_hal::gpio::Gpio34::new()
+                                        })
+                                        .ok()?,
+                                        adc1,
+                                    )));
+                                    Some(p)
+                                }
+                                35 => {
+                                    let p: Rc<
+                                        RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                                    > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        v.name.to_string(),
+                                        AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
+                                            esp_idf_hal::gpio::Gpio35::new()
+                                        })
+                                        .ok()?,
+                                        adc1,
+                                    )));
+                                    Some(p)
+                                }
+                                36 => {
+                                    let p: Rc<
+                                        RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                                    > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        v.name.to_string(),
+                                        AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
+                                            esp_idf_hal::gpio::Gpio36::new()
+                                        })
+                                        .ok()?,
+                                        adc1,
+                                    )));
+                                    Some(p)
+                                }
+                                37 => {
+                                    let p: Rc<
+                                        RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                                    > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        v.name.to_string(),
+                                        AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
+                                            esp_idf_hal::gpio::Gpio37::new()
+                                        })
+                                        .ok()?,
+                                        adc1,
+                                    )));
+                                    Some(p)
+                                }
+                                38 => {
+                                    let p: Rc<
+                                        RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                                    > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        v.name.to_string(),
+                                        AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
+                                            esp_idf_hal::gpio::Gpio38::new()
+                                        })
+                                        .ok()?,
+                                        adc1,
+                                    )));
+                                    Some(p)
+                                }
+                                39 => {
+                                    let p: Rc<
+                                        RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
+                                    > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        v.name.to_string(),
+                                        AdcChannelDriver::<_, Atten11dB<ADC1>>::new(unsafe {
+                                            esp_idf_hal::gpio::Gpio39::new()
+                                        })
+                                        .ok()?,
+                                        adc1,
+                                    )));
+                                    Some(p)
+                                }
+                                _ => {
+                                    log::error!("pin {} is not an ADC1 pin", v.pin);
+                                    None
+                                }
+                            }?;
 
-                let i2c_confs =
-                    if let Ok(i2c_confs) = cfg.get_attribute::<Vec<Esp32I2cConfig>>("i2cs") {
-                        i2c_confs
-                    } else {
-                        vec![]
-                    };
-                (analogs, pins, i2c_confs)
-            }
+                            Some(chan)
+                        })
+                        .collect();
+                analogs
+            } else {
+                vec![]
+            };
+            let pins = if let Ok(pins) = cfg.get_attribute::<Vec<i32>>("pins") {
+                pins.iter()
+                    .filter_map(|pin| {
+                        let p = PinDriver::input_output(unsafe { AnyIOPin::new(*pin) });
+                        if let Ok(p) = p {
+                            Some(p)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            } else {
+                vec![]
+            };
+
+            let i2c_confs =
+                if let Ok(i2c_confs) = cfg.get_attribute::<Vec<Esp32I2cConfig>>("i2cs") {
+                    i2c_confs
+                } else {
+                    vec![]
+                };
+            (analogs, pins, i2c_confs)
         };
         let mut i2cs = HashMap::new();
         for conf in i2c_confs.iter() {
