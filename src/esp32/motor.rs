@@ -49,7 +49,10 @@ use crate::common::encoder::{
     Encoder, EncoderPositionType, EncoderType, COMPONENT_NAME as EncoderCompName,
 };
 use crate::common::math_utils::go_for_math;
-use crate::common::motor::{Motor, MotorPinsConfig, MotorType, COMPONENT_NAME as MotorCompName};
+use crate::common::motor::{
+    detect_motor_type_from_cfg, Motor, MotorPinType, MotorPinsConfig, MotorType,
+    COMPONENT_NAME as MotorCompName,
+};
 use crate::common::registry::{ComponentRegistry, Dependency, ResourceKey};
 use crate::common::robot::Resource;
 use crate::common::status::Status;
@@ -88,11 +91,20 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 // Generates a motor or an encoded motor depending on whether an encoder has been added as
 // a dependency from the config. TODO: Add support for initializing PwmDirMotorEsp32.
 pub fn gpio_motor_from_config(cfg: ConfigType, deps: Vec<Dependency>) -> anyhow::Result<MotorType> {
-    let motor = ABMotorEsp32::<
-        PinDriver<'_, AnyOutputPin, Output>,
-        PinDriver<'_, AnyOutputPin, Output>,
-        LedcDriver<'_>,
-    >::from_config(cfg)?;
+    let motor_type = detect_motor_type_from_cfg(&cfg)?;
+    let motor = match motor_type {
+        MotorPinType::ABPWM => ABMotorEsp32::<
+            PinDriver<'_, AnyOutputPin, Output>,
+            PinDriver<'_, AnyOutputPin, Output>,
+            LedcDriver<'_>,
+        >::from_config(cfg)?
+        .clone(),
+        MotorPinType::PWMDIR => PwmDirMotorEsp32::<
+            PinDriver<'_, AnyOutputPin, Output>,
+            LedcDriver<'_>,
+        >::from_config(cfg)?
+        .clone(),
+    };
     let mut enc: Option<EncoderType> = None;
     for Dependency(_, dep) in deps {
         match dep {
@@ -327,6 +339,33 @@ where
             dir_flip,
             max_rpm,
         }
+    }
+
+    pub(crate) fn from_config(cfg: ConfigType) -> anyhow::Result<MotorType> {
+        if let Ok(pins) = cfg.get_attribute::<MotorPinsConfig>("pins") {
+            if pins.dir.is_some() {
+                use esp_idf_hal::units::FromValueType;
+                let pwm_tconf = TimerConfig::default().frequency(10.kHz().into());
+                let timer =
+                    LedcTimerDriver::new(unsafe { esp_idf_hal::ledc::TIMER0::new() }, &pwm_tconf)?;
+                let pwm_pin = unsafe { AnyOutputPin::new(pins.pwm) };
+                let chan = PWMCHANNELS.lock().unwrap().take_next_channel()?;
+                let chan = match chan {
+                    PwmChannel::C0(c) => LedcDriver::new(c, timer, pwm_pin)?,
+                    PwmChannel::C1(c) => LedcDriver::new(c, timer, pwm_pin)?,
+                    PwmChannel::C2(c) => LedcDriver::new(c, timer, pwm_pin)?,
+                };
+                let max_rpm: f64 = cfg.get_attribute::<f64>("max_rpm")?;
+                let dir_flip: bool = cfg.get_attribute::<bool>("dir_flip")?;
+                return Ok(Arc::new(Mutex::new(PwmDirMotorEsp32::new(
+                    PinDriver::output(unsafe { AnyOutputPin::new(pins.dir.unwrap()) })?,
+                    chan,
+                    dir_flip,
+                    max_rpm,
+                ))));
+            }
+        }
+        Err(anyhow::anyhow!("cannot build motor"))
     }
 }
 
