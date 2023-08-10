@@ -375,8 +375,17 @@ where
         self.encode_message(resp)
     }
 
-    fn board_get_digital_interrupt_value(&mut self, _message: &[u8]) -> Result<(), GrpcError> {
-        Err(GrpcError::RpcUnimplemented)
+    fn board_get_digital_interrupt_value(&mut self, message: &[u8]) -> Result<(), GrpcError> {
+        let req = component::board::v1::GetDigitalInterruptValueRequest::decode(message)
+            .map_err(|_| GrpcError::RpcInvalidArgument)?;
+        let board = match self.robot.lock().unwrap().get_board_by_name(req.board_name) {
+            Some(b) => b,
+            None => return Err(GrpcError::RpcUnavailable),
+        };
+
+        let value = board.get_digital_interrupt_value(req.digital_interrupt_name.parse::<i32>().map_err(|_| GrpcError::RpcInternal)?).map_err(|_| GrpcError::RpcInternal)?;
+        let resp = component::board::v1::GetDigitalInterruptValueResponse { value };
+        self.encode_message(resp)
     }
 
     fn board_status(&mut self, message: &[u8]) -> Result<(), GrpcError> {

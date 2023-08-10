@@ -4,6 +4,7 @@ use crate::common::status::Status;
 use crate::proto::common;
 use crate::proto::component;
 use core::cell::RefCell;
+use std::sync::mpsc::Receiver;
 use log::*;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
@@ -13,6 +14,7 @@ use std::time::Duration;
 
 use super::analog::FakeAnalogReader;
 use super::config::ConfigType;
+use super::digital_interrupt::InterruptEvent;
 use super::i2c::FakeI2CHandle;
 use super::i2c::FakeI2cConfig;
 use super::i2c::I2CHandle;
@@ -48,6 +50,12 @@ pub trait Board: Status {
         duration: Option<Duration>,
     ) -> anyhow::Result<()>;
     fn get_i2c_by_name(&self, name: String) -> anyhow::Result<I2cHandleType>;
+    fn subscribe_to_pin(&mut self, _pin: i32) -> anyhow::Result<Receiver<InterruptEvent>> {
+        anyhow::bail!("this board does not support digital interrupts")
+    }
+    fn get_digital_interrupt_value(&self, _pin: i32) -> anyhow::Result<i64> {
+        anyhow::bail!("this board does not support digital interrupts")
+    }
 }
 
 pub type BoardType = Arc<Mutex<dyn Board>>;
@@ -217,7 +225,15 @@ where
         self.lock().unwrap().set_power_mode(mode, duration)
     }
 
+    fn subscribe_to_pin(&mut self, pin: i32) -> anyhow::Result<Receiver<InterruptEvent>> {
+        self.lock().unwrap().subscribe_to_pin(pin)
+    }
+
     fn get_i2c_by_name(&self, name: String) -> anyhow::Result<I2cHandleType> {
         self.lock().unwrap().get_i2c_by_name(name)
+    }
+
+    fn get_digital_interrupt_value(&self, pin: i32) -> anyhow::Result<i64> {
+        self.lock().unwrap().get_digital_interrupt_value(pin)
     }
 }
