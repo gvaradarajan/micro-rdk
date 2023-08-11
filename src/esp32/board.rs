@@ -184,7 +184,7 @@ impl GPIOPin {
     }
 
     #[inline(always)]
-    #[link_section = ".iram0.text"]
+    #[link_section = ".iram1.intr_srv"]
     unsafe extern "C" fn interrupt(arg: *mut core::ffi::c_void) {
         let arg: &mut PinEventTransmitter = &mut *(arg as *mut _);
         match arg.emit_event() {
