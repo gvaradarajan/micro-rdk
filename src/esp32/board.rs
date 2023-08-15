@@ -357,16 +357,6 @@ impl EspBoard {
                 vec![]
             };
             let pins = if let Ok(pins) = cfg.get_attribute::<Vec<i32>>("pins") {
-                // pins.iter()
-                //     .filter_map(|pin| {
-                //         let p = PinDriver::input_output(unsafe { AnyIOPin::new(*pin) });
-                //         if let Ok(p) = p {
-                //             Some(p)
-                //         } else {
-                //             None
-                //         }
-                //     })
-                //     .collect()
                 pins.iter()
                     .filter_map(|pin| {
                         let p = GPIOPin::new(*pin, None, None);
@@ -400,7 +390,7 @@ impl EspBoard {
             for conf in interrupt_confs {
                 let p = pins.iter_mut().find(|p| p.pin() == conf.pin);
                 if let Some(p) = p {
-                    // TODO: make configurable
+                    // TODO: make event type configurable
                     p.setup_interrupt(InterruptEventType::PosEDGE)?
                 } else {
                     let mut p = GPIOPin::new(conf.pin, None, None)?;
