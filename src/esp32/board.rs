@@ -153,7 +153,9 @@ impl GPIOPin {
                     return Ok(())
                 }
             }
-            None => {}
+            None => {
+                self.interrupt_type = Some(intr_type);
+            }
         };
         install_gpio_isr_service()?;
         self.config.intr_type = intr_type.into();

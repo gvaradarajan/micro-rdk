@@ -191,7 +191,7 @@ where
             "/viam.component.base.v1.BaseService/MoveStraight" => self.base_move_straight(payload),
             "/viam.component.base.v1.BaseService/Spin" => self.base_spin(payload),
             "/viam.component.base.v1.BaseService/SetVelocity" => self.base_set_velocity(payload),
-            "/viam.component.board.v1.BoardService/GetDigitalinterruptValue" => {
+            "/viam.component.board.v1.BoardService/GetDigitalInterruptValue" => {
                 self.board_get_digital_interrupt_value(payload)
             }
             "/viam.component.board.v1.BoardService/GetGPIO" => self.board_get_pin(payload),
@@ -382,8 +382,10 @@ where
             Some(b) => b,
             None => return Err(GrpcError::RpcUnavailable),
         };
-
-        let value = board.get_digital_interrupt_value(req.digital_interrupt_name.parse::<i32>().map_err(|_| GrpcError::RpcInternal)?).map_err(|_| GrpcError::RpcInternal)?;
+        let interrupt_pin = req.digital_interrupt_name.parse::<i32>().map_err(|_| GrpcError::RpcInvalidArgument)?;
+        let value = board.get_digital_interrupt_value(interrupt_pin).map_err(|err| {
+            GrpcError::RpcInternal
+        })?;
         let resp = component::board::v1::GetDigitalInterruptValueResponse { value };
         self.encode_message(resp)
     }
