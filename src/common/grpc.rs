@@ -382,10 +382,13 @@ where
             Some(b) => b,
             None => return Err(GrpcError::RpcUnavailable),
         };
-        let interrupt_pin = req.digital_interrupt_name.parse::<i32>().map_err(|_| GrpcError::RpcInvalidArgument)?;
-        let value = board.get_digital_interrupt_value(interrupt_pin).map_err(|err| {
-            GrpcError::RpcInternal
-        })?;
+        let interrupt_pin = req
+            .digital_interrupt_name
+            .parse::<i32>()
+            .map_err(|_| GrpcError::RpcInvalidArgument)?;
+        let value = board
+            .get_digital_interrupt_value(interrupt_pin)
+            .map_err(|err| GrpcError::RpcInternal)?;
         let resp = component::board::v1::GetDigitalInterruptValueResponse { value };
         self.encode_message(resp)
     }

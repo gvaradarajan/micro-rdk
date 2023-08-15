@@ -4,7 +4,9 @@ use crate::common::analog::AnalogReaderConfig;
 use crate::common::board::Board;
 use crate::common::board::BoardType;
 use crate::common::config::ConfigType;
-use crate::common::digital_interrupt::{InterruptEventType, InterruptEvent, PinEventTransmitter, DigitalInterruptConfig};
+use crate::common::digital_interrupt::{
+    DigitalInterruptConfig, InterruptEvent, InterruptEventType, PinEventTransmitter,
+};
 use crate::common::i2c::I2cHandleType;
 use crate::common::registry::ComponentRegistry;
 use crate::common::status::Status;
@@ -18,23 +20,19 @@ use esp_idf_hal::adc::AdcDriver;
 use esp_idf_hal::adc::Atten11dB;
 use esp_idf_hal::adc::ADC1;
 use esp_idf_hal::gpio::{AnyIOPin, InputOutput, PinDriver};
-use esp_idf_sys::{esp, gpio_config, gpio_config_t, gpio_mode_t_GPIO_MODE_INPUT, 
-    gpio_int_type_t, 
-    gpio_int_type_t_GPIO_INTR_DISABLE,
-    gpio_int_type_t_GPIO_INTR_POSEDGE,
-    gpio_int_type_t_GPIO_INTR_NEGEDGE,
-    gpio_int_type_t_GPIO_INTR_ANYEDGE,
-    gpio_int_type_t_GPIO_INTR_LOW_LEVEL,
-    gpio_int_type_t_GPIO_INTR_HIGH_LEVEL, 
-    gpio_install_isr_service, 
-    gpio_isr_handler_add,
-    ESP_INTR_FLAG_IRAM};
+use esp_idf_sys::{
+    esp, gpio_config, gpio_config_t, gpio_install_isr_service, gpio_int_type_t,
+    gpio_int_type_t_GPIO_INTR_ANYEDGE, gpio_int_type_t_GPIO_INTR_DISABLE,
+    gpio_int_type_t_GPIO_INTR_HIGH_LEVEL, gpio_int_type_t_GPIO_INTR_LOW_LEVEL,
+    gpio_int_type_t_GPIO_INTR_NEGEDGE, gpio_int_type_t_GPIO_INTR_POSEDGE, gpio_isr_handler_add,
+    gpio_mode_t_GPIO_MODE_INPUT, ESP_INTR_FLAG_IRAM,
+};
 use log::*;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use super::analog::Esp32AnalogReader;
@@ -75,7 +73,7 @@ impl TryFrom<gpio_int_type_t> for InterruptEventType {
             _ => {
                 anyhow::bail!("invalid esp32 interrupt event type {:?} encountered", value)
             }
-        }) 
+        })
     }
 }
 
@@ -91,16 +89,24 @@ impl From<InterruptEventType> for gpio_int_type_t {
     }
 }
 
+/// GPIOPin is a wrapper for a pin on ESP32 as represented in esp-idf-hal
+/// and esp-idf-sys. This exists so that all micro-RDK drivers can interact
+/// with pins through the board instance and avoid conflicting uses of pins
+/// by multiple processes
 pub struct GPIOPin {
     pin: i32,
     driver: PinDriver<'static, AnyIOPin, InputOutput>,
     config: gpio_config_t,
     transmitter: Option<Box<PinEventTransmitter>>,
-    interrupt_type: Option<InterruptEventType>
+    interrupt_type: Option<InterruptEventType>,
 }
 
 impl GPIOPin {
-    pub fn new(pin: i32, config: Option<gpio_config_t>, pull_up: Option<bool>) -> anyhow::Result<Self> {
+    pub fn new(
+        pin: i32,
+        config: Option<gpio_config_t>,
+        pull_up: Option<bool>,
+    ) -> anyhow::Result<Self> {
         let pull_up_en = pull_up.unwrap_or_default();
         let config = config;
         let config = match config {
@@ -108,22 +114,26 @@ impl GPIOPin {
                 let mut cfg = cfg;
                 cfg.pin_bit_mask = 1 << pin;
                 cfg
-            },
-            None => {
-                gpio_config_t {
-                    pin_bit_mask: 1 << pin,
-                    mode: gpio_mode_t_GPIO_MODE_INPUT,
-                    pull_up_en: pull_up_en.into(),
-                    pull_down_en: (!pull_up_en).into(),
-                    intr_type: gpio_int_type_t_GPIO_INTR_DISABLE,
-                }
             }
+            None => gpio_config_t {
+                pin_bit_mask: 1 << pin,
+                mode: gpio_mode_t_GPIO_MODE_INPUT,
+                pull_up_en: pull_up_en.into(),
+                pull_down_en: (!pull_up_en).into(),
+                intr_type: gpio_int_type_t_GPIO_INTR_DISABLE,
+            },
         };
         unsafe {
             esp!(gpio_config(&config))?;
         }
         let driver = PinDriver::input_output(unsafe { AnyIOPin::new(pin) })?;
-        Ok(Self { pin, driver, config, transmitter: None, interrupt_type: None })
+        Ok(Self {
+            pin,
+            driver,
+            config,
+            transmitter: None,
+            interrupt_type: None,
+        })
     }
 
     pub fn pin(&self) -> i32 {
@@ -135,11 +145,15 @@ impl GPIOPin {
     }
 
     pub fn set_high(&mut self) -> anyhow::Result<()> {
-        self.driver.set_high().map_err(|e| anyhow::anyhow!("couldn't set pin {} high {}", self.pin, e))
+        self.driver
+            .set_high()
+            .map_err(|e| anyhow::anyhow!("couldn't set pin {} high {}", self.pin, e))
     }
 
     pub fn set_low(&mut self) -> anyhow::Result<()> {
-        self.driver.set_low().map_err(|e| anyhow::anyhow!("couldn't set pin {} low {}", self.pin, e))
+        self.driver
+            .set_low()
+            .map_err(|e| anyhow::anyhow!("couldn't set pin {} low {}", self.pin, e))
     }
 
     pub fn is_interrupt(&self) -> bool {
@@ -150,7 +164,7 @@ impl GPIOPin {
         match &self.interrupt_type {
             Some(existing_type) => {
                 if *existing_type == intr_type {
-                    return Ok(())
+                    return Ok(());
                 }
             }
             None => {
@@ -159,9 +173,12 @@ impl GPIOPin {
         };
         install_gpio_isr_service()?;
         self.config.intr_type = intr_type.into();
-        
+
         let initially_high = self.driver.is_high();
-        self.transmitter = Some(Box::new(PinEventTransmitter::new(intr_type, initially_high)));
+        self.transmitter = Some(Box::new(PinEventTransmitter::new(
+            intr_type,
+            initially_high,
+        )));
         unsafe {
             esp!(gpio_config(&self.config))?;
             esp!(gpio_isr_handler_add(
@@ -174,15 +191,23 @@ impl GPIOPin {
     }
 
     pub fn get_interrupt_channel(&mut self) -> anyhow::Result<Receiver<InterruptEvent>> {
-        Ok(self.transmitter.as_mut().ok_or_else(|| anyhow::Error::msg(
-            format!("interrupt not set up for GPIO pin {:?}", self.pin)
-        ))?.subscribe())
+        Ok(self
+            .transmitter
+            .as_mut()
+            .ok_or_else(|| {
+                anyhow::Error::msg(format!("interrupt not set up for GPIO pin {:?}", self.pin))
+            })?
+            .subscribe())
     }
 
     pub fn get_event_count(&self) -> anyhow::Result<i64> {
-        Ok(self.transmitter.as_ref().ok_or_else(|| anyhow::Error::msg(
-            format!("interrupt not set up for GPIO pin {:?}", self.pin)
-        ))?.get_event_count())
+        Ok(self
+            .transmitter
+            .as_ref()
+            .ok_or_else(|| {
+                anyhow::Error::msg(format!("interrupt not set up for GPIO pin {:?}", self.pin))
+            })?
+            .get_event_count())
     }
 
     #[inline(always)]
@@ -190,7 +215,7 @@ impl GPIOPin {
     unsafe extern "C" fn interrupt(arg: *mut core::ffi::c_void) {
         let arg: &mut PinEventTransmitter = &mut *(arg as *mut _);
         match arg.emit_event() {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(err) => {
                 log::error!("failed to send interrupt event: {:?}", err)
             }
@@ -386,7 +411,9 @@ impl EspBoard {
             let i2c_wrapped: I2cHandleType = Arc::new(Mutex::new(i2c));
             i2cs.insert(name.to_string(), i2c_wrapped);
         }
-        if let Ok(interrupt_confs) = cfg.get_attribute::<Vec<DigitalInterruptConfig>>("digital_interrupts") {
+        if let Ok(interrupt_confs) =
+            cfg.get_attribute::<Vec<DigitalInterruptConfig>>("digital_interrupts")
+        {
             for conf in interrupt_confs {
                 let p = pins.iter_mut().find(|p| p.pin() == conf.pin);
                 if let Some(p) = p {
@@ -412,7 +439,10 @@ impl Board for EspBoard {
         let p = self.pins.iter_mut().find(|p| p.pin() == pin);
         if let Some(p) = p {
             if p.is_interrupt() {
-                anyhow::bail!("cannot set level for pin {:?}, it is registered as an interrupt", pin)
+                anyhow::bail!(
+                    "cannot set level for pin {:?}, it is registered as an interrupt",
+                    pin
+                )
             }
             if is_high {
                 return p.set_high();
@@ -503,19 +533,28 @@ impl Board for EspBoard {
         let p = self.pins.iter_mut().find(|p| p.pin() == pin);
         if let Some(p) = p {
             p.setup_interrupt(InterruptEventType::PosEDGE)?;
-            return p.get_interrupt_channel()
+            return p.get_interrupt_channel();
         }
-        Err(anyhow::anyhow!("pin {} is not configured on the board instance", pin))
+        Err(anyhow::anyhow!(
+            "pin {} is not configured on the board instance",
+            pin
+        ))
     }
     fn get_digital_interrupt_value(&self, pin: i32) -> anyhow::Result<i64> {
         let p = self.pins.iter().find(|p| p.pin() == pin);
         if let Some(p) = p {
             if !p.is_interrupt() {
-                return Err(anyhow::anyhow!("pin {} is not configured as an interrupt", pin))
+                return Err(anyhow::anyhow!(
+                    "pin {} is not configured as an interrupt",
+                    pin
+                ));
             }
-            return p.get_event_count()
+            return p.get_event_count();
         }
-        Err(anyhow::anyhow!("pin {} is not configured on the board instance", pin))
+        Err(anyhow::anyhow!(
+            "pin {} is not configured on the board instance",
+            pin
+        ))
     }
 }
 

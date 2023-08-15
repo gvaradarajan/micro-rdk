@@ -4,10 +4,10 @@ use crate::common::status::Status;
 use crate::proto::common;
 use crate::proto::component;
 use core::cell::RefCell;
-use std::sync::mpsc::Receiver;
 use log::*;
 use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
+use std::sync::mpsc::Receiver;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -50,9 +50,31 @@ pub trait Board: Status {
         duration: Option<Duration>,
     ) -> anyhow::Result<()>;
     fn get_i2c_by_name(&self, name: String) -> anyhow::Result<I2cHandleType>;
+    /// This is a way to subscribe to interrupt events on a pin (which includes the state of the
+    /// pin immediately after the event and the timestamp of the event). Meant to be used by
+    /// drivers for components running on the same machine as this board instance
+    ///
+    /// Example (finding distance of the nearest object with an ultrasonic sensor with a
+    /// trigger pin (23) and an echo interrupt pin(22))
+    /// ```
+    /// use tokio::time::{sleep, Duration};
+    ///
+    /// // where b is some instance implementing the board trait
+    /// let event_channel = b.subscribe_to_pin(22).unwrap();
+    /// b.set_gpio_pin_level(23, true);
+    /// sleep(Duration::from_millis(100)).await;
+    /// b.set_gpio_pin_level(23, false);
+    ///
+    /// let pulse_event = event_channel.recv()?;
+    /// let trigger_event = event_channel.recv()?;
+    /// let time_passed = trigger_event.duration_since(pulse_event)?.as_millis() as f64;
+    /// let dist = (time_passed / 1000.0) * 343;
+    /// ```
     fn subscribe_to_pin(&mut self, _pin: i32) -> anyhow::Result<Receiver<InterruptEvent>> {
         anyhow::bail!("this board does not support digital interrupts")
     }
+    /// Return the amount of detected interrupt events on a pin. Should error if the
+    /// pin has not been configured as an interrupt
     fn get_digital_interrupt_value(&self, _pin: i32) -> anyhow::Result<i64> {
         anyhow::bail!("this board does not support digital interrupts")
     }

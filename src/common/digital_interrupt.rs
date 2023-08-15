@@ -1,9 +1,9 @@
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering, AtomicI64};
-use std::sync::mpsc::{Sender, Receiver, channel};
-use std::time::SystemTime;
+use std::time::Instant;
 
-use super::config::{Kind, AttributeError};
+use super::config::{AttributeError, Kind};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum InterruptEventType {
@@ -11,39 +11,56 @@ pub enum InterruptEventType {
     NegEDGE,
     AnyEDGE,
     LOW,
-    HIGH
+    HIGH,
 }
+
+/// Represents an interrupt event on a pin. Includes the state
+/// of the pin immediately after the event (is_high) and the timestamp
+/// of the event. NOTE: we use Instant because the timestamp is meant
+/// for computing *time differences between events* and using duration_since
+/// on SystemTime instances is subject to more inaccuracy (see Rust documentation
+/// at https://doc.rust-lang.org/std/time/struct.SystemTime.html for more
+/// information)
 #[derive(Debug, Clone, Copy)]
 pub struct InterruptEvent {
     is_high: bool,
-    timestamp: SystemTime
+    timestamp: Instant,
 }
 
 impl InterruptEvent {
     pub fn new(is_high: bool) -> Self {
-        Self { is_high, timestamp: SystemTime::now() }
+        Self {
+            is_high,
+            timestamp: Instant::now(),
+        }
     }
 
     pub fn is_high(&self) -> bool {
         self.is_high
     }
 
-    pub fn timestamp(&self) -> SystemTime {
+    pub fn timestamp(&self) -> Instant {
         self.timestamp
     }
 }
 
-pub struct PinEventTransmitter {
+pub(crate) struct PinEventTransmitter {
     broadcasters: Vec<Sender<InterruptEvent>>,
     intr_type: InterruptEventType,
     previously_high: bool,
     in_use: Arc<AtomicBool>,
-    event_count: Arc<AtomicI64>
+    event_count: Arc<AtomicI64>,
 }
 
 impl PinEventTransmitter {
     pub fn new(intr_type: InterruptEventType, initially_high: bool) -> Self {
-        Self { broadcasters: vec![], intr_type, previously_high: initially_high, in_use: Arc::new(AtomicBool::new(false)), event_count: Arc::new(AtomicI64::new(0)) }
+        Self {
+            broadcasters: vec![],
+            intr_type,
+            previously_high: initially_high,
+            in_use: Arc::new(AtomicBool::new(false)),
+            event_count: Arc::new(AtomicI64::new(0)),
+        }
     }
 
     pub fn emit_event(&mut self) -> anyhow::Result<()> {
@@ -63,12 +80,8 @@ impl PinEventTransmitter {
                 self.previously_high = !self.previously_high;
                 InterruptEvent::new(!self.previously_high)
             }
-            InterruptEventType::LOW | InterruptEventType::NegEDGE => {
-                InterruptEvent::new(false)
-            }
-            InterruptEventType::HIGH | InterruptEventType::PosEDGE => {
-                InterruptEvent::new(true)
-            }
+            InterruptEventType::LOW | InterruptEventType::NegEDGE => InterruptEvent::new(false),
+            InterruptEventType::HIGH | InterruptEventType::PosEDGE => InterruptEvent::new(true),
         }
     }
 
