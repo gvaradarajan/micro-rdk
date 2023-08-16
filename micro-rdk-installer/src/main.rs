@@ -1,12 +1,15 @@
 use std::fs::{self, File};
-use std::io::{stdin, stdout, Write};
+use std::io::Write;
+use std::path::Path;
 
 use clap::{arg, command, Args, Parser, Subcommand};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Password};
+use micro_rdk_installer::flash::viam_flash;
 use micro_rdk_installer::nvs::data::{ViamFlashStorageData, WifiCredentials};
 use micro_rdk_installer::nvs::partition::{NVSPartition, NVSPartitionData};
 use micro_rdk_installer::nvs::request::populate_nvs_storage_from_app;
+use micro_rdk_installer::partition_table::create_partition_table;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
@@ -33,7 +36,18 @@ enum Commands {
 struct WriteBinary {}
 
 #[derive(Args)]
-struct WriteFlash {}
+struct WriteFlash {
+    #[arg(long = "app-config")]
+    config: String,
+    #[arg(long = "bootloader")]
+    bootloader_path: String,
+    #[arg(long = "app")]
+    app_path: String,
+    #[arg(long = "size", default_value = "32768")]
+    nvs_size: usize,
+    #[arg(long = "monitor")]
+    should_monitor: bool
+}
 
 #[derive(Args)]
 struct CreateNVSPartition {
@@ -92,8 +106,17 @@ fn main() -> Result<(), anyhow::Error> {
         Some(Commands::WriteBinary(_)) => {
             anyhow::bail!("binary write not yet supported")
         }
-        Some(Commands::WriteFlash(_)) => {
-            anyhow::bail!("writing to flash not yet supported")
+        Some(Commands::WriteFlash(args)) => {
+            let bootloader_path = Path::new(&args.bootloader_path);
+            let binary_path = Path::new(&args.app_path);
+            let partition_table = create_partition_table(args.nvs_size as u32, false);
+            partition_table.validate().or_else(|err| {
+                let mut file = fs::File::create("table.csv")?;
+                file.write_all(partition_table.to_csv()?.as_bytes())?;
+                Err(err)
+            })?;
+            let nvs_data = create_nvs_partition_binary(args.config.to_string(), args.nvs_size)?;
+            viam_flash(bootloader_path, binary_path, partition_table, nvs_data, args.should_monitor)?;
         }
         Some(Commands::CreateNvsPartition(args)) => {
             let mut file = File::create(args.file_name.to_string())?;
