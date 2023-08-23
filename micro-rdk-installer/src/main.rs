@@ -1,9 +1,11 @@
-use std::fs::{self, File};
-use std::io::Write;
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Seek, SeekFrom, Write};
 
 use clap::{arg, command, Args, Parser, Subcommand};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Input, Password};
+use espflash::cli::config::Config;
+use espflash::cli::{connect, monitor::monitor, ConnectArgs, EspflashProgress};
 use micro_rdk_installer::error::Error;
 use micro_rdk_installer::nvs::data::{ViamFlashStorageData, WifiCredentials};
 use micro_rdk_installer::nvs::partition::{NVSPartition, NVSPartitionData};
@@ -25,16 +27,32 @@ struct AppConfig {
 
 #[derive(Subcommand)]
 enum Commands {
-    WriteBinary(WriteBinary),
+    WriteCredentials(WriteCredentials),
     WriteFlash(WriteFlash),
     CreateNvsPartition(CreateNVSPartition),
 }
 
 #[derive(Args)]
-struct WriteBinary {}
+struct WriteCredentials {
+    #[arg(long = "app-config")]
+    config: String,
+    #[arg(long = "bin")]
+    binary_path: String,
+    #[arg(long = "nvs-size", default_value = "32768")]
+    size: usize,
+}
 
 #[derive(Args)]
-struct WriteFlash {}
+struct WriteFlash {
+    #[arg(long = "app-config")]
+    config: String,
+    #[arg(long = "bin")]
+    binary_path: String,
+    #[arg(long = "nvs-size", default_value = "32768")]
+    size: usize,
+    #[arg(long = "monitor")]
+    monitor: bool,
+}
 
 #[derive(Args)]
 struct CreateNVSPartition {
@@ -92,18 +110,63 @@ fn create_nvs_partition_binary(config_path: String, size: usize) -> Result<Vec<u
     Ok(NVSPartitionData::try_from(part)?.to_bytes())
 }
 
+fn write_credentials_to_app_binary(
+    binary_path: &str,
+    nvs_data: &Vec<u8>,
+    nvs_size: u64,
+) -> Result<(), Error> {
+    let mut app_file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&binary_path)
+        .map_err(Error::FileError)?;
+    let file_len = app_file.metadata().map_err(Error::FileError)?.len();
+    if (file_len - 0x9000_u64) <= nvs_size {
+        return Err(Error::BinaryEditError(file_len));
+    }
+    app_file
+        .seek(SeekFrom::Start(0x9000_u64))
+        .map_err(Error::FileError)?;
+    app_file.write_all(&nvs_data).map_err(Error::FileError)?;
+    Ok(())
+}
+
+fn flash(binary_path: &str, should_monitor: bool) -> Result<(), Error> {
+    let connect_args = ConnectArgs {
+        baud: Some(460800),
+        // let espflash auto-detect the port
+        port: None,
+        no_stub: false,
+    };
+    let conf = Config::default();
+    let mut flasher = connect(&connect_args, &conf).map_err(|_| Error::FlashConnect)?;
+    let mut f = File::open(binary_path).map_err(Error::FileError)?;
+    let size = f.metadata().map_err(Error::FileError)?.len();
+    let mut buffer = Vec::with_capacity(
+        size.try_into()
+            .map_err(|_| Error::BinaryBufferError(size))?,
+    );
+    f.read_to_end(&mut buffer).map_err(Error::FileError)?;
+    flasher.write_bin_to_flash(0x00, &buffer, Some(&mut EspflashProgress::default()))?;
+    if should_monitor {
+        let pid = flasher.get_usb_pid()?;
+        monitor(flasher.into_interface(), None, pid, 115_200)
+            .map_err(|err| Error::MonitorError(err.to_string()))?;
+    }
+    Ok(())
+}
+
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     match &cli.command {
-        Some(Commands::WriteBinary(_)) => {
-            return Err(Error::UnimplementedError(
-                "binary write not yet supported".to_string(),
-            ))
+        Some(Commands::WriteCredentials(args)) => {
+            let nvs_data = create_nvs_partition_binary(args.config.to_string(), args.size)?;
+            write_credentials_to_app_binary(&args.binary_path, &nvs_data, args.size as u64)?;
         }
-        Some(Commands::WriteFlash(_)) => {
-            return Err(Error::UnimplementedError(
-                "writing to flash not yet supported".to_string(),
-            ))
+        Some(Commands::WriteFlash(args)) => {
+            let nvs_data = create_nvs_partition_binary(args.config.to_string(), args.size)?;
+            write_credentials_to_app_binary(&args.binary_path, &nvs_data, args.size as u64)?;
+            flash(&args.binary_path, args.monitor)?;
         }
         Some(Commands::CreateNvsPartition(args)) => {
             let mut file = File::create(&args.file_name).map_err(Error::FileError)?;
