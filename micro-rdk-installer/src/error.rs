@@ -1,3 +1,4 @@
+use espflash::error::Error as EspFlashError;
 use rcgen::RcgenError;
 use thiserror::Error;
 
@@ -7,6 +8,10 @@ pub enum Error {
     NVSDataProcessingError(String),
     #[error("File Error: {0}")]
     FileError(std::io::Error),
+    #[error("Binary Too Small, File Size: {0}")]
+    BinaryEditError(u64),
+    #[error("Binary Too Large, File Size: {0}")]
+    BinaryBufferError(u64),
     #[error("{0}")]
     WifiPasswordTooLongError(String),
     #[error("Wifi Credentials Error: {0}")]
@@ -27,6 +32,12 @@ pub enum Error {
     AppConnectionError(anyhow::Error),
     #[error("Unimplemented command: {0}")]
     UnimplementedError(String),
+    #[error("Flash connection error")]
+    FlashConnect,
+    #[error("EspFlash Flash error: {0}")]
+    EspFlashError(EspFlashError),
+    #[error("Monitor serial error: {0}")]
+    MonitorError(String),
     #[error("No command received")]
     NoCommandError,
 }
@@ -37,7 +48,11 @@ impl From<RcgenError> for Error {
     }
 }
 
-// impl std::error::Error for Error {}
+impl From<EspFlashError> for Error {
+    fn from(value: EspFlashError) -> Self {
+        Self::EspFlashError(value)
+    }
+}
 
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
