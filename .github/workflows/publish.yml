@@ -19,7 +19,10 @@ jobs:
           - { target: aarch64-unknown-linux, exe: aarch64-linux, os: ubuntu-latest }
           - { target: x86_64-apple-darwin, exe: macos, os: macos-latest }
           - { target: x86_64-pc-windows-msvc, exe: windows.exe, os: windows-latest }
-      runs-on: ${{ matrix.job.os }}
+    runs-on: ${{ matrix.job.os }}
+    defaults:
+      run:
+        working-directory: ./micro-rdk-installer
     steps:
     - name: Checkout main branch code
       uses: actions/checkout@v3
@@ -34,15 +37,14 @@ jobs:
         target: ${{ matrix.job.target }}
     - name: Build installer binary
       uses: actions-rs/cargo@v1
-      working-directory: ./micro-rdk-installer
       with:
         use-cross: true
         args: --release --target=${{ matrix.job.target }}
         command: build 
     - name: Rename result
       run: |
-        rm micro-rdk-installer/target/${{ matrix.job.target }}/release/micro-rdk-installer.d
-        cp micro-rdk-installer/target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
+        rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
+        cp target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
         sha256sum  micro-rdk-installer-${{ matrix.job.exe }}  >> sha256sums.txt
     - name: Check release type
       id: check-tag
@@ -54,7 +56,6 @@ jobs:
         fi
     - name: Publish installer release
       uses: marvinpinto/action-automatic-releases@latest
-      working-directory: ./micro-rdk-installer
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         files: |
