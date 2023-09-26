@@ -81,7 +81,7 @@ jobs:
   test_and_build:
     needs: changes
     name: Tests, Format, Clippy Micro-Rdk
-    runs-on: [x64, qemu-host]
+    runs-on: ubuntu-latest
     container:
       image: ghcr.io/viamrobotics/micro-rdk-dev-env:amd64
     timeout-minutes: 20
