@@ -20,14 +20,14 @@ jobs:
           - { target: x86_64-apple-darwin, exe: macos, os: macos-latest }
           - { target: x86_64-pc-windows-msvc, exe: windows.exe, os: windows-latest }
     runs-on: ${{ matrix.job.os }}
-    defaults:
-      run:
-        working-directory: ./micro-rdk-installer
     steps:
     - name: Checkout main branch code
       uses: actions/checkout@v3
       with:
         fetch-depth: 2
+    - name: Enter installer directory
+      run: |
+        cd micro-rdk-installer
     - name: Set toolchain
       uses: actions-rs/toolchain@v1
       with:
