@@ -8,6 +8,62 @@ on:
 jobs:
   tests:
     uses: ./.github/workflows/test.yml
+  
+  publish-installer-release:
+    needs: tests
+    if: ${{ needs.changes.outputs.src-cli == 'true'}}
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { target: x86_64-unknown-linux, exe: amd64-linux, os: ubuntu-latest }
+          - { target: aarch64-unknown-linux, exe: aarch64-linux, os: ubuntu-latest }
+          - { target: x86_64-apple-darwin, exe: macos, os: macos-latest }
+          - { target: x86_64-pc-windows-msvc, exe: windows.exe, os: windows-latest }
+      runs-on: ${{ matrix.job.os }}
+      steps:
+      - name: Checkout main branch code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: Set toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.62.0
+          override: true
+          target: ${{ matrix.job.target }}
+      - name: Build installer binary
+        uses: actions-rs/cargo@v1
+        working-directory: ./micro-rdk-installer
+        with:
+          use-cross: true
+          args: --release --target=${{ matrix.job.target }}
+          command: build 
+      - name: Rename result
+        run: |
+          rm micro-rdk-installer/target/${{ matrix.job.target }}/release/micro-rdk-installer.d
+          cp micro-rdk-installer/target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
+          sha256sum  micro-rdk-installer-${{ matrix.job.exe }}  >> sha256sums.txt
+      - name: Check release type
+        id: check-tag
+        run: |
+          if echo ${{ github.event.ref }} | grep -Eq '^refs/tags/v.*rc[0-9]{1}$'; then
+                echo "match=true" >> $GITHUB_OUTPUT
+          else
+                echo "match=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Publish installer release
+        uses: marvinpinto/action-automatic-releases@latest
+        working-directory: ./micro-rdk-installer
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            micro-rdk-installer-${{ matrix.job.exe }}
+            sha256sums.txt
+          prerelease: ${{ steps.check-tag.outputs.match }}
+      
+
   publish-release:
     runs-on: [x64, qemu-host]
     container:
