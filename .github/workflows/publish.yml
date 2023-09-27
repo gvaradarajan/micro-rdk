@@ -20,14 +20,14 @@ jobs:
           - { target: x86_64-apple-darwin, exe: macos, os: macos-latest }
           - { target: x86_64-pc-windows-msvc, exe: windows.exe, os: windows-latest }
     runs-on: ${{ matrix.job.os }}
-    env:
-      working-directory: ./micro-rdk-installer
+    defaults: 
+      run:
+        working-directory: ./micro-rdk-installer
     steps:
     - name: Checkout main branch code
       uses: actions/checkout@v3
       with:
         fetch-depth: 2
-      working-directory: ${{ env.working-directory }}
     - name: Set toolchain
       uses: actions-rs/toolchain@v1
       with:
@@ -35,20 +35,17 @@ jobs:
         toolchain: 1.67.0
         override: true
         target: ${{ matrix.job.target }}
-      working-directory: ${{ env.working-directory }}
     - name: Build installer binary
       uses: actions-rs/cargo@v1
       with:
         use-cross: true
-        args: --release --target=${{ matrix.job.target }}
+        args: --release --target=${{ matrix.job.target }} --manifest-path ./micro-rdk-installer
         command: build
-      working-directory: ${{ env.working-directory }}
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
         cp target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
         sha256sum  micro-rdk-installer-${{ matrix.job.exe }}  >> sha256sums.txt
-      working-directory: ${{ env.working-directory }}
     - name: Check release type
       id: check-tag
       run: |
@@ -57,7 +54,6 @@ jobs:
         else
               echo "match=false" >> $GITHUB_OUTPUT
         fi
-      working-directory: ${{ env.working-directory }}
     - name: Publish installer release
       uses: marvinpinto/action-automatic-releases@latest
       with:
@@ -66,7 +62,6 @@ jobs:
           micro-rdk-installer-${{ matrix.job.exe }}
           sha256sums.txt
         prerelease: ${{ steps.check-tag.outputs.match }}
-      working-directory: ${{ env.working-directory }}
       
 
   publish-release:
