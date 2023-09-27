@@ -78,10 +78,6 @@ jobs:
         toolchain: 1.70.0
         override: true
         target: ${{ matrix.job.target }}
-    - name: Install x86_64 linux dependencies
-      if: ${{ matrix.job.os == 'ubuntu-latest' }}
-      run: |
-        sudo apt-get install libudev-dev
     - name: Build installer binary
       run: |
         cargo build --target ${{ matrix.job.target }} --release
