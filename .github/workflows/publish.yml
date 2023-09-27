@@ -39,7 +39,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         use-cross: true
-        args: --release --target=${{ matrix.job.target }} --manifest-path ./micro-rdk-installer
+        args: --release --target=${{ matrix.job.target }} --manifest-path ./micro-rdk-installer/Cargo.toml
         command: build
     - name: Rename result
       run: |
