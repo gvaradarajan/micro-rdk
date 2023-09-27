@@ -36,11 +36,9 @@ jobs:
         override: true
         target: ${{ matrix.job.target }}
     - name: Build installer binary
-      uses: actions-rs/cargo@v1
-      with:
-        use-cross: true
-        args: --release --target=${{ matrix.job.target }} --manifest-path ./micro-rdk-installer/Cargo.toml
-        command: build
+      run: |
+        cargo install cross --git https://github.com/cross-rs/cross
+        cross build --target ${{ matrix.job.target }}
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
