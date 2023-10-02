@@ -17,6 +17,7 @@ jobs:
     runs-on: ${{ matrix.job.os }}
     defaults: 
       run:
+        shell: bash
         working-directory: ./micro-rdk-installer
     steps:
     - name: Checkout main branch code
