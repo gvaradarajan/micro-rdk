@@ -40,8 +40,8 @@ jobs:
         cargo build --release --features static_tls
     - name: Rename result
       run: |
-        rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
-        cp target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
+        rm target/release/micro-rdk-installer.d
+        cp target/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
         sha256sum  micro-rdk-installer-${{ matrix.job.exe }}  >> sha256sums.txt
     - name: Check release type
       id: check-tag
