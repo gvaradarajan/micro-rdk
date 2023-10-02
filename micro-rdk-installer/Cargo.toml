@@ -30,4 +30,4 @@ viam = { version = ">=0.0.7", git = "https://github.com/viamrobotics/viam-rust-s
 viam-rust-utils = "0.0.24"
 
 [features]
-static_ssl = ['openssl/vendored']
+static_tls = ['reqwest/native-tls-vendored']
