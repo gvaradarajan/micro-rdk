@@ -12,7 +12,6 @@ jobs:
       matrix:
         job:
           - { target: x86_64-unknown-linux-gnu, exe: amd64-linux, os: ubuntu-latest }
-          - { target: aarch64-unknown-linux-gnu, exe: aarch64-linux, os: ubuntu-latest }
           - { target: x86_64-apple-darwin, exe: macos, os: macos-latest }
           - { target: x86_64-pc-windows-msvc, exe: windows.exe, os: windows-latest }
     runs-on: ${{ matrix.job.os }}
@@ -37,13 +36,7 @@ jobs:
         sudo apt-get install libudev-dev pkg-config libssl-dev
     - name: Build installer binary
       run: |
-        cargo install cross --git https://github.com/cross-rs/cross
-        SYSROOT=/build/root
-        export PKG_CONFIG_DIR=
-        export PKG_CONFIG_LIBDIR=${SYSROOT}/usr/lib/pkgconfig:${SYSROOT}/usr/share/pkgconfig
-        export PKG_CONFIG_SYSROOT_DIR=${SYSROOT}
-        export PKG_CONFIG_ALLOW_CROSS=1
-        cross build --target ${{ matrix.job.target }} --release --features static_tls
+        cargo build --release --features static_tls
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
