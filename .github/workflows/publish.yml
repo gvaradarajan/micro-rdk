@@ -38,7 +38,12 @@ jobs:
     - name: Build installer binary
       run: |
         cargo install cross --git https://github.com/cross-rs/cross
-        export PKG_CONFIG_ALLOW_CROSS=1 && cross build --target ${{ matrix.job.target }} --release --features static_tls
+        SYSROOT=/build/root
+        export PKG_CONFIG_DIR=
+        export PKG_CONFIG_LIBDIR=${SYSROOT}/usr/lib/pkgconfig:${SYSROOT}/usr/share/pkgconfig
+        export PKG_CONFIG_SYSROOT_DIR=${SYSROOT}
+        export PKG_CONFIG_ALLOW_CROSS=1
+        cross build --target ${{ matrix.job.target }} --release --features static_tls
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
