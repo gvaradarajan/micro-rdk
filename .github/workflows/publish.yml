@@ -42,7 +42,7 @@ jobs:
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     - name: Build installer binary
       run: |
-        cargo build --release --features static_tls --target {{ matrix.job.target }}
+        cargo build --release --features static_tls --target ${{ matrix.job.target }}
     - name: Rename result
       run: |
         rm target/release/micro-rdk-installer.d
