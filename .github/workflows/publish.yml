@@ -38,7 +38,7 @@ jobs:
     - name: Build installer binary
       run: |
         cargo install cross --git https://github.com/cross-rs/cross
-        cross build --target ${{ matrix.job.target }} --release --features static_ssl
+        cross build --target ${{ matrix.job.target }} --release --features static_tls
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
