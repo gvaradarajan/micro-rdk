@@ -17,7 +17,6 @@ jobs:
     runs-on: ${{ matrix.job.os }}
     defaults: 
       run:
-        shell: bash
         working-directory: ./micro-rdk-installer
     steps:
     - name: Checkout main branch code
@@ -43,7 +42,7 @@ jobs:
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     - name: Build installer binary
       run: |
-        cargo build --release --features static_tls
+        cargo build --release --features static_tls --target {{ matrix.job.target }}
     - name: Rename result
       run: |
         rm target/release/micro-rdk-installer.d
