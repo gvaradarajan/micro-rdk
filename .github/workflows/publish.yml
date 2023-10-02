@@ -35,6 +35,11 @@ jobs:
       if: ${{ matrix.job.os == 'ubuntu-latest' }}
       run: |
         sudo apt-get install libudev-dev pkg-config libssl-dev
+    - name: Install MacOS dependencies
+      if: ${{ matrix.job.os == 'macos-latest' }}
+      run: |
+        brew install coreutils
+        export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     - name: Build installer binary
       run: |
         cargo build --release --features static_tls
