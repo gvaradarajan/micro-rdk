@@ -41,8 +41,13 @@ jobs:
         brew install coreutils
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     - name: Build installer binary
+      if: ${{ matrix.job.os != 'windows-latest' }}
       run: |
-        cargo build --release --features static_tls --target ${{ matrix.job.target }}
+        cargo build --release --features static_tls
+    - name: Build installer binary (Windows)
+      if: ${{ matrix.job.os == 'windows-latest' }}
+      run: |
+        cargo build --release
     - name: Rename result
       run: |
         rm target/release/micro-rdk-installer.d
