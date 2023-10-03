@@ -44,14 +44,11 @@ jobs:
       if: ${{ matrix.job.target != 'x86_64-pc-windows-msvc' }}
       run: |
         cargo build --release --features static_tls --target ${{ matrix.job.target }}
-    - name: Print linker
-      if: ${{ matrix.job.target == 'x86_64-pc-windows-msvc' }}
-      run: |
-        which gcc >> $GITHUB_OUTPUT
     - name: Build installer library (Windows)
       if: ${{ matrix.job.target == 'x86_64-pc-windows-msvc' }}
       run: |
-        cargo build --release --target x86_64-pc-windows-msvc
+        rustup component add rust-mingw
+        cargo build --release --target x86_64-pc-windows-gnu
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
