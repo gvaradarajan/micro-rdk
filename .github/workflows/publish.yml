@@ -25,6 +25,7 @@ jobs:
         fetch-depth: 2
     - name: Set toolchain
       uses: actions-rs/toolchain@v1
+      if: ${{ matrix.job.target != 'x86_64-pc-windows-gnu' }}
       with:
         profile: minimal
         toolchain: 1.70.0
