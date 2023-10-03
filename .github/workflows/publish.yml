@@ -47,7 +47,7 @@ jobs:
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
-        ls
+        ls target/${{ matrix.job.target }}/release
         cp target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
     - name: Check release type
       id: check-tag
