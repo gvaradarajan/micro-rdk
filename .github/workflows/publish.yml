@@ -11,13 +11,14 @@ jobs:
       fail-fast: false
       matrix:
         job:
-          - { target: x86_64-unknown-linux-gnu, exe: amd64-linux, os: ubuntu-latest }
-          - { target: x86_64-apple-darwin, exe: macos, os: macos-latest }
-          - { target: x86_64-pc-windows-msvc, exe: windows.exe, os: windows-latest }
+          - { target: x86_64-unknown-linux-gnu, exe: amd64-linux, os: ubuntu-latest, shell: bash }
+          - { target: x86_64-apple-darwin, exe: macos, os: macos-latest, shell: bash }
+          - { target: x86_64-pc-windows-msvc, exe: windows.exe, os: windows-latest, shell: cmd }
     runs-on: ${{ matrix.job.os }}
     defaults: 
       run:
         working-directory: ./micro-rdk-installer
+        shell: ${{ matrix.job.shell }}
     steps:
     - name: Checkout main branch code
       uses: actions/checkout@v3
