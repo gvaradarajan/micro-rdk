@@ -18,6 +18,7 @@ jobs:
     defaults: 
       run:
         working-directory: ./micro-rdk-installer
+        shell: bash
     steps:
     - name: Checkout main branch code
       uses: actions/checkout@v3
@@ -51,7 +52,7 @@ jobs:
     - name: Check release type
       id: check-tag
       run: |
-        if (echo ${{ github.event.ref }} | grep -Eq '^refs/tags/v.*rc[0-9]{1}$'); then
+        if echo ${{ github.event.ref }} | grep -Eq '^refs/tags/v.*rc[0-9]{1}$'; then
               echo "match=true" >> $GITHUB_OUTPUT
         else
               echo "match=false" >> $GITHUB_OUTPUT
