@@ -42,14 +42,8 @@ jobs:
         brew install coreutils
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     - name: Build installer binary
-      if: ${{ matrix.job.target != 'x86_64-pc-windows-gnu' }}
       run: |
         cargo build --release --features static_tls --target ${{ matrix.job.target }}
-    - name: Build installer library (Windows)
-      if: ${{ matrix.job.target == 'x86_64-pc-windows-gnu' }}
-      run: |
-        rustup component add rust-mingw
-        cargo build --release --target x86_64-pc-windows-gnu
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d

@@ -27,7 +27,7 @@ tempfile = "3.8.0"
 thiserror = "1.0.46"
 tokio = "1.29.1"
 viam = { version = ">=0.0.7", git = "https://github.com/viamrobotics/viam-rust-sdk.git" }
-viam-rust-utils = "0.0.24"
+viam-rust-utils = "0.1.2"
 
 [features]
 static_tls = ['reqwest/native-tls-vendored']
