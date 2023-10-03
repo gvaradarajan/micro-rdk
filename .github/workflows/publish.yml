@@ -47,7 +47,8 @@ jobs:
     - name: Build installer library (Windows)
       if: ${{ matrix.job.target == 'x86_64-pc-windows-msvc' }}
       run: |
-        cargo build --release --target x86_64-pc-windows-gnu
+        which gcc
+        cargo build --release --target x86_64-pc-windows-msvc
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
