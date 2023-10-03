@@ -46,11 +46,6 @@ jobs:
       if: ${{ matrix.job.target != 'aarch64-unknown-linux-gnu' }}
       run: |
         cargo build --release --features static_tls --target ${{ matrix.job.target }}
-    - name: Build installer binary (arm64-linux)
-      if: ${{ matrix.job.target == 'aarch64-unknown-linux-gnu' }}
-      run: |
-        cargo install cross --git https://github.com/cross-rs/cross
-        cross build --target aarch64-unknown-linux-gnu --release --features static_tls
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
