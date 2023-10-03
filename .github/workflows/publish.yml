@@ -13,7 +13,7 @@ jobs:
         job:
           - { target: x86_64-unknown-linux-gnu, exe: amd64-linux, os: ubuntu-latest}
           - { target: x86_64-apple-darwin, exe: macos, os: macos-latest}
-          - { target: x86_64-pc-windows-gnu, exe: windows.exe, os: ubuntu-latest}    
+          - { target: x86_64-pc-windows-msvc, exe: windows.exe, os: windows-latest}    
     runs-on: ${{ matrix.job.os }}
     defaults: 
       run:
@@ -41,14 +41,13 @@ jobs:
         brew install coreutils
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     - name: Build installer binary
-      if: ${{ matrix.job.target != 'x86_64-pc-windows-gnu' }}
+      if: ${{ matrix.job.target != 'x86_64-pc-windows-msvc' }}
       run: |
         cargo build --release --features static_tls --target ${{ matrix.job.target }}
     - name: Build installer library (Windows)
-      if: ${{ matrix.job.target == 'x86_64-pc-windows-gnu' }}
+      if: ${{ matrix.job.target == 'x86_64-pc-windows-msvc' }}
       run: |
-        cargo install cross --git https://github.com/cross-rs/cross
-        PKG_CONFIG_ALLOW_CROSS=1 cross build --release --features static_tls --target ${{ matrix.job.target }}
+        cargo build --release --target ${{ matrix.job.target }}
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
