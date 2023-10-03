@@ -47,7 +47,7 @@ jobs:
     - name: Build installer library (Windows)
       if: ${{ matrix.job.target == 'x86_64-pc-windows-msvc' }}
       run: |
-        which gcc
+        which gcc >> $GITHUB_OUTPUT
         cargo build --release --target x86_64-pc-windows-msvc
     - name: Rename result
       run: |
