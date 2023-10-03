@@ -50,7 +50,8 @@ jobs:
         git clone https://github.com/cross-rs/cross
         cd cross
         git submodule update --init --remote
-        cargo build-docker-image x86_64-pc-windows-msvc-cross
+        cd ../
+        cargo build-docker-image cross/x86_64-pc-windows-msvc-cross
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
