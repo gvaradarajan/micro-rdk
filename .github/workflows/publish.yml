@@ -45,10 +45,13 @@ jobs:
       run: |
         cargo build --release --target ${{ matrix.job.target }} --locked
     - name: Rename result
+      if: ${{ matrix.job.os != 'windows-latest' }}
       run: |
-        rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
-        ls target/${{ matrix.job.target }}/release
-        cp target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
+        cp target/${{ matrix.job.target }}/release/micro-rdk-installer micro-rdk-installer-${{ matrix.job.exe }}
+    - name: Rename result (Windows)
+      if: ${{ matrix.job.os == 'windows-latest' }}
+      run: |
+        cp target/${{ matrix.job.target }}/release/micro-rdk-installer.exe micro-rdk-installer-${{ matrix.job.exe }}
     - name: Check release type
       id: check-tag
       run: |
