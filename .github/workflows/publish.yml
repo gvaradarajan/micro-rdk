@@ -50,11 +50,7 @@ jobs:
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
-        if [[ $(find . -wholename 'target/${{ matrix.job.target }}/release/micro-rdk-installer*' -printf c | wc -c) == "1" ]]; then
-            cp target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
-        else
-            exit 1
-        fi
+        cp target/${{ matrix.job.target }}/release/micro-rdk-installer* micro-rdk-installer-${{ matrix.job.exe }}
     - name: Check release type
       id: check-tag
       run: |
