@@ -49,7 +49,8 @@ jobs:
       run: |
         git clone https://github.com/cross-rs/cross
         cd cross
-        RUST_BACKTRACE=1 cargo build-docker-image x86_64-pc-windows-msvc-cross --tag local
+        git submodule update --init --remote
+        RUST_BACKTRACE=1 cargo build-docker-image x86_64-pc-windows-msvc-cross --tag local -- docker/Dockerfile.x86_64-pc-windows-msvc-cross
         cargo build --release --features static_tls --target ${{ matrix.job.target }}
     - name: Rename result
       run: |
