@@ -31,3 +31,6 @@ viam-rust-utils = "0.0.24"
 
 [features]
 static_tls = ['reqwest/native-tls-vendored']
+
+[target.x86_64-pc-windows-msvc]
+image = "ghcr.io/cross-rs/x86_64-pc-windows-msvc-cross:local"
