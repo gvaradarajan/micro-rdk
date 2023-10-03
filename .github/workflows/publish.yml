@@ -47,8 +47,10 @@ jobs:
     - name: Build installer library (Windows)
       if: ${{ matrix.job.target == 'x86_64-pc-windows-msvc' }}
       run: |
-        cargo install cross --git https://github.com/cross-rs/cross
-        cross build --release --features static_tls --target x86_64-pc-windows-msvc
+        git clone https://github.com/cross-rs/cross
+        cd cross
+        git submodule update --init --remote
+        cargo build-docker-image x86_64-pc-windows-msvc-cross
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
