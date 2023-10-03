@@ -46,7 +46,7 @@ jobs:
         export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     - name: Build installer binary
       run: |
-        cargo build --release --features static_tls --target ${{ matrix.job.target }} --locked
+        cargo build --release --target ${{ matrix.job.target }} --locked
     - name: Rename result
       run: |
         rm target/${{ matrix.job.target }}/release/micro-rdk-installer.d
@@ -93,7 +93,7 @@ jobs:
         default: true
     - name: Build installer binary
       run: |
-        cargo build --release --features static_tls --locked
+        cargo build --release --locked
         cp target/release/micro-rdk-installer micro-rdk-installer-arm64-linux
     - name: Upload release
       uses: actions/upload-artifact@v2
