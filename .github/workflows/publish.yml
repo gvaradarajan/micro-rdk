@@ -51,7 +51,7 @@ jobs:
     - name: Check release type
       id: check-tag
       run: |
-        if echo ${{ github.event.ref }} | grep -Eq '^refs/tags/v.*rc[0-9]{1}$'; then
+        if (echo ${{ github.event.ref }} | grep -Eq '^refs/tags/v.*rc[0-9]{1}$'); then
               echo "match=true" >> $GITHUB_OUTPUT
         else
               echo "match=false" >> $GITHUB_OUTPUT
