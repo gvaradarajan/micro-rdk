@@ -70,6 +70,7 @@ jobs:
         path: micro-rdk-installer-${{ matrix.job.exe }}
   
   build-installer-arm64-linux:
+    runs-on: [x64, qemu-host]
     container:
       image: ghcr.io/viamrobotics/micro-rdk-dev-env:arm64
     needs: tests
