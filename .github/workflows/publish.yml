@@ -48,10 +48,12 @@ jobs:
       if: ${{ matrix.job.os != 'windows-latest' }}
       run: |
         cp target/${{ matrix.job.target }}/release/micro-rdk-installer micro-rdk-installer-${{ matrix.job.exe }}
+        ls
     - name: Rename result (Windows)
       if: ${{ matrix.job.os == 'windows-latest' }}
       run: |
         cp target/${{ matrix.job.target }}/release/micro-rdk-installer.exe micro-rdk-installer-${{ matrix.job.exe }}
+        ls
     - name: Check release type
       id: check-tag
       run: |
