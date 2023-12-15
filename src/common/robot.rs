@@ -21,6 +21,7 @@ use crate::{
     google,
     proto::{
         app::v1::ConfigResponse,
+        data_sync::v1::SensorData,
         common::{self, v1::ResourceName},
         robot,
     },
@@ -39,7 +40,7 @@ use super::{
     registry::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
-    sensor::SensorType,
+    sensor::{SensorType, get_sensor_data},
     servo::{Servo, ServoType},
 };
 use thiserror::Error;
@@ -721,6 +722,25 @@ impl LocalRobot {
             )
         }
         Ok(())
+    }
+
+    pub(crate) fn collect_readings(&mut self) -> anyhow::Result<Vec<SensorData>> {
+        let mut result = vec![];
+        for (name, res) in self.resources.iter_mut() {
+            match res {
+                ResourceType::Sensor(sensor) => {
+                    result.push(get_sensor_data(res)?)
+                },
+                ResourceType::MovementSensor(sensor) => {
+                    result.push(get_sensor_data(res)?)
+                }
+                ResourceType::PowerSensor(sensor) => {
+                    result.push(get_sensor_data(res)?)
+                },
+                _ => {}
+            };
+        }
+        Ok(result)
     }
 }
 

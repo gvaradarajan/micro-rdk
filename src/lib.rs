@@ -41,6 +41,13 @@ pub mod proto {
         }
     }
 
+    pub mod data_sync {
+        pub mod v1 {
+            #![allow(clippy::derive_partial_eq_without_eq)]
+            include!("gen/viam.app.datasync.v1.rs");
+        }
+    }
+
     pub mod rpc {
         pub mod v1 {
             #![allow(clippy::derive_partial_eq_without_eq)]
