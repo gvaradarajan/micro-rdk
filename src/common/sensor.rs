@@ -2,7 +2,7 @@
 
 use crate::common::status::Status;
 use crate::google;
-use crate::proto::data_sync::v1::{SensorData, SensorMetadata, sensor_data::Data};
+use crate::proto::app::data_sync::v1::{sensor_data::Data, SensorData};
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -31,23 +31,27 @@ pub trait Readings {
     fn get_generic_readings(&mut self) -> anyhow::Result<GenericReadingsResult>;
 }
 
-pub fn get_sensor_data(sensor: &mut dyn Readings) -> SensorData {
+pub fn get_sensor_data(sensor: &mut dyn Readings) -> anyhow::Result<SensorData> {
     let readings = sensor.get_generic_readings()?;
-    let data_struct = Data::Struct(google::protobuf::Struct{ fields: HashMap::from([(
-        "readings".to_string(),
-        google::protobuf::Value {
-            kind: Some(google::protobuf::value::Kind::StructValueValue(readings)),
-        },
-    )])});
+    let data_struct = Data::Struct(google::protobuf::Struct {
+        fields: HashMap::from([(
+            "readings".to_string(),
+            google::protobuf::Value {
+                kind: Some(google::protobuf::value::Kind::StructValue(
+                    google::protobuf::Struct { fields: readings },
+                )),
+            },
+        )]),
+    });
 
-    SensorData { 
+    Ok(SensorData {
         // metadata: Some(SensorMetadata {
         //     time_received: google::protobuf::Timestamp::default(),
         //     time_requested: google::protobuf::Timestamp::default(),
-        // }), 
+        // }),
         metadata: None,
-        data: Some(data_struct) 
-    }
+        data: Some(data_struct),
+    })
 }
 
 pub trait Sensor: Readings + Status + DoCommand {}

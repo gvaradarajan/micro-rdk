@@ -8,6 +8,7 @@ use std::{net::Ipv4Addr, pin::Pin, rc::Rc, time::SystemTime};
 use thiserror::Error;
 
 use crate::proto::{
+    app::data_sync::v1::{DataCaptureUploadRequest, SensorData},
     app::v1::{AgentInfo, ConfigRequest, ConfigResponse, LogEntry, LogRequest},
     rpc::{
         v1::{AuthenticateRequest, AuthenticateResponse, Credentials},
@@ -244,6 +245,32 @@ impl<'a> AppClient<'a> {
 
         self.grpc_client.send_request(r, body)?;
 
+        Ok(())
+    }
+
+    pub fn robot_part_id(&self) -> String {
+        self.config.get_robot_id()
+    }
+
+    pub fn push_sensor_data(
+        &mut self,
+        data: Vec<DataCaptureUploadRequest>,
+    ) -> Result<(), AppClientError> {
+        for req in data {
+            let r = self
+                .grpc_client
+                .build_request(
+                    "/viam.app.datasync.v1.DataSyncService/DataCaptureUpload",
+                    Some(&self.jwt),
+                    "",
+                )
+                .map_err(AppClientError::AppGrpcClientError)?;
+
+            let body = encode_request(req)?;
+            self.grpc_client
+                .send_request(r, body)
+                .map_err(AppClientError::AppGrpcClientError)?;
+        }
         Ok(())
     }
 }

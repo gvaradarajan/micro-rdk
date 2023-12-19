@@ -20,8 +20,8 @@ use crate::{
     common::status::Status,
     google,
     proto::{
+        app::data_sync::v1::{DataCaptureUploadRequest, DataType, UploadMetadata},
         app::v1::ConfigResponse,
-        data_sync::v1::SensorData,
         common::{self, v1::ResourceName},
         robot,
     },
@@ -40,7 +40,7 @@ use super::{
     registry::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
-    sensor::{SensorType, get_sensor_data},
+    sensor::{get_sensor_data, SensorType},
     servo::{Servo, ServoType},
 };
 use thiserror::Error;
@@ -724,21 +724,38 @@ impl LocalRobot {
         Ok(())
     }
 
-    pub(crate) fn collect_readings(&mut self) -> anyhow::Result<Vec<SensorData>> {
+    pub(crate) fn collect_readings(
+        &mut self,
+        part_id: &str,
+    ) -> anyhow::Result<Vec<DataCaptureUploadRequest>> {
         let mut result = vec![];
         for (name, res) in self.resources.iter_mut() {
-            match res {
+            if let Some((sensor_data, component_type)) = match res {
                 ResourceType::Sensor(sensor) => {
-                    result.push(get_sensor_data(res)?)
-                },
-                ResourceType::MovementSensor(sensor) => {
-                    result.push(get_sensor_data(res)?)
+                    Some((get_sensor_data(sensor)?, "rdk:component:sensor".to_string()))
                 }
-                ResourceType::PowerSensor(sensor) => {
-                    result.push(get_sensor_data(res)?)
-                },
-                _ => {}
-            };
+                ResourceType::MovementSensor(sensor) => Some((
+                    get_sensor_data(sensor)?,
+                    "rdk:component:movementsensor".to_string(),
+                )),
+                ResourceType::PowerSensor(sensor) => Some((
+                    get_sensor_data(sensor)?,
+                    "rdk:component:powersensor".to_string(),
+                )),
+                _ => None,
+            } {
+                result.push(DataCaptureUploadRequest {
+                    metadata: Some(UploadMetadata {
+                        part_id: part_id.to_string(),
+                        component_type,
+                        component_name: name.name.to_string(),
+                        method_name: "Readings".to_string(),
+                        r#type: DataType::TabularSensor.into(),
+                        ..Default::default()
+                    }),
+                    sensor_contents: vec![sensor_data],
+                })
+            }
         }
         Ok(result)
     }

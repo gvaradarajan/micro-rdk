@@ -319,6 +319,24 @@ where
                 let _ = self.app_client.insert(app_client);
             }
 
+            // send data
+            if let Ok(sensor_readings) = cloned_robot
+                .clone()
+                .lock()
+                .as_mut()
+                .unwrap()
+                .collect_readings(&self.app_client.as_ref().unwrap().robot_part_id())
+            {
+                if let Err(err) = self
+                    .app_client
+                    .as_mut()
+                    .unwrap()
+                    .push_sensor_data(sensor_readings)
+                {
+                    log::error!("error while reporting sensor data: {}", err);
+                }
+            }
+
             let sig = if let Some(webrtc_config) = self.webrtc_config.as_ref() {
                 let ip = self.app_config.get_ip();
                 let signaling = self.app_client.as_mut().unwrap().connect_signaling();
