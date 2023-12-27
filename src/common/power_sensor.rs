@@ -1,8 +1,14 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
-    google::protobuf::{value::Kind, Value},
-    proto::component,
+    google::protobuf::{value::Kind, Struct, Value, Timestamp},
+    proto::{
+        app::data_sync::v1::{sensor_data, SensorData, SensorMetadata},
+        component,
+    },
 };
 
 use super::{
@@ -17,6 +23,15 @@ pub static COMPONENT_NAME: &str = "power_sensor";
 pub enum PowerSupplyType {
     AC,
     DC,
+}
+
+impl PowerSupplyType {
+    pub fn is_ac(&self) -> bool {
+        match self {
+            Self::AC => true,
+            Self::DC => false,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -35,10 +50,43 @@ impl From<Voltage> for component::power_sensor::v1::GetVoltageResponse {
     fn from(value: Voltage) -> Self {
         Self {
             volts: value.volts,
-            is_ac: match value.power_supply_type {
-                PowerSupplyType::AC => true,
-                PowerSupplyType::DC => false,
-            },
+            is_ac: value.power_supply_type.is_ac(),
+        }
+    }
+}
+
+impl From<Voltage> for SensorData {
+    fn from(value: Voltage) -> Self {
+        SensorData {
+            metadata: Some(SensorMetadata {
+                time_received: Some(Timestamp::default()),
+                time_requested: Some(Timestamp::default()),
+            }),
+            data: Some(sensor_data::Data::Struct(Struct {
+                fields: HashMap::from([(
+                    "voltage".to_string(),
+                    Value {
+                        kind: Some(Kind::StructValue(Struct {
+                            fields: HashMap::from([
+                                (
+                                    "is_ac".to_string(),
+                                    Value {
+                                        kind: Some(Kind::BoolValue(
+                                            value.power_supply_type.is_ac(),
+                                        )),
+                                    },
+                                ),
+                                (
+                                    "volts".to_string(),
+                                    Value {
+                                        kind: Some(Kind::NumberValue(value.volts)),
+                                    },
+                                ),
+                            ]),
+                        })),
+                    },
+                )]),
+            })),
         }
     }
 }
@@ -51,6 +99,42 @@ impl From<Current> for component::power_sensor::v1::GetCurrentResponse {
                 PowerSupplyType::AC => true,
                 PowerSupplyType::DC => false,
             },
+        }
+    }
+}
+
+impl From<Current> for SensorData {
+    fn from(value: Current) -> Self {
+        SensorData {
+            metadata: Some(SensorMetadata {
+                time_received: Some(Timestamp::default()),
+                time_requested: Some(Timestamp::default()),
+            }),
+            data: Some(sensor_data::Data::Struct(Struct {
+                fields: HashMap::from([(
+                    "current".to_string(),
+                    Value {
+                        kind: Some(Kind::StructValue(Struct {
+                            fields: HashMap::from([
+                                (
+                                    "is_ac".to_string(),
+                                    Value {
+                                        kind: Some(Kind::BoolValue(
+                                            value.power_supply_type.is_ac(),
+                                        )),
+                                    },
+                                ),
+                                (
+                                    "amperes".to_string(),
+                                    Value {
+                                        kind: Some(Kind::NumberValue(value.amperes)),
+                                    },
+                                ),
+                            ]),
+                        })),
+                    },
+                )]),
+            })),
         }
     }
 }

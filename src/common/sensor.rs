@@ -2,6 +2,7 @@
 
 use crate::common::status::Status;
 use crate::google;
+use crate::proto::app::data_sync::v1::SensorMetadata;
 use crate::proto::app::data_sync::v1::{sensor_data::Data, SensorData};
 
 use std::collections::HashMap;
@@ -31,7 +32,7 @@ pub trait Readings {
     fn get_generic_readings(&mut self) -> anyhow::Result<GenericReadingsResult>;
 }
 
-pub fn get_sensor_data(sensor: &mut dyn Readings) -> anyhow::Result<SensorData> {
+pub fn get_sensor_readings_data(sensor: &mut dyn Readings) -> anyhow::Result<SensorData> {
     let readings = sensor.get_generic_readings()?;
     let data_struct = Data::Struct(google::protobuf::Struct {
         fields: HashMap::from([(
@@ -45,11 +46,11 @@ pub fn get_sensor_data(sensor: &mut dyn Readings) -> anyhow::Result<SensorData> 
     });
 
     Ok(SensorData {
-        // metadata: Some(SensorMetadata {
-        //     time_received: google::protobuf::Timestamp::default(),
-        //     time_requested: google::protobuf::Timestamp::default(),
-        // }),
-        metadata: None,
+        metadata: Some(SensorMetadata {
+            time_received: Some(google::protobuf::Timestamp::default()),
+            time_requested: Some(google::protobuf::Timestamp::default()),
+        }),
+        // metadata: None,
         data: Some(data_struct),
     })
 }

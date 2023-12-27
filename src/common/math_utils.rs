@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 use crate::{
-    google::protobuf::{value::Kind, Struct, Value},
-    proto::common,
+    google::protobuf::{value::Kind, Struct, Value, Timestamp},
+    proto::{
+        app::data_sync::v1::{sensor_data, SensorData, SensorMetadata},
+        common,
+    },
 };
 use anyhow::bail;
 use std::{collections::HashMap, time::Duration};
@@ -21,6 +24,46 @@ impl Vector3 {
             z: 0.0,
         }
     }
+
+    pub fn to_sensor_data(&self, key: &str) -> SensorData {
+        let data_struct = Struct {
+            fields: HashMap::from([
+                (
+                    "x".to_string(),
+                    Value {
+                        kind: Some(Kind::NumberValue(self.x)),
+                    },
+                ),
+                (
+                    "y".to_string(),
+                    Value {
+                        kind: Some(Kind::NumberValue(self.y)),
+                    },
+                ),
+                (
+                    "z".to_string(),
+                    Value {
+                        kind: Some(Kind::NumberValue(self.z)),
+                    },
+                ),
+            ]),
+        };
+
+        SensorData {
+            metadata: Some(SensorMetadata {
+                time_received: Some(Timestamp::default()),
+                time_requested: Some(Timestamp::default()),
+            }),
+            data: Some(sensor_data::Data::Struct(Struct {
+                fields: HashMap::from([(
+                    key.to_string(),
+                    Value {
+                        kind: Some(Kind::StructValue(data_struct)),
+                    },
+                )]),
+            })),
+        }
+    }
 }
 
 impl From<Vector3> for common::v1::Vector3 {
@@ -32,6 +75,12 @@ impl From<Vector3> for common::v1::Vector3 {
         }
     }
 }
+
+// impl From<Vector3> for SensorData {
+//     fn from(value: Vector3) -> Self {
+//         let data_struct =
+//     }
+// }
 
 impl From<Vector3> for Value {
     fn from(value: Vector3) -> Self {

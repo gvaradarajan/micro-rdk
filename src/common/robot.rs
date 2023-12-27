@@ -32,6 +32,7 @@ use super::{
     base::BaseType,
     board::BoardType,
     config::{AttributeError, Component, ConfigType, DynamicComponentConfig},
+    data_collector::{DataCollector, CollectionMethod},
     encoder::EncoderType,
     generic::{GenericComponent, GenericComponentType},
     motor::MotorType,
@@ -40,7 +41,7 @@ use super::{
     registry::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
-    sensor::{get_sensor_data, SensorType},
+    sensor::SensorType,
     servo::{Servo, ServoType},
 };
 use thiserror::Error;
@@ -64,10 +65,27 @@ pub enum ResourceType {
 pub type Resource = ResourceType;
 pub type ResourceMap = HashMap<ResourceName, Resource>;
 
+impl ResourceType {
+    pub fn component_type(&self) -> String {
+        match self {
+            Self::Base(_) => "rdk:component:base",
+            Self::Board(_) => "rdk:component:board",
+            Self::Encoder(_) => "rdk:component:encoder",
+            Self::Generic(_) => "rdk:component:generic",
+            Self::Motor(_) => "rdk:component:motor",
+            Self::MovementSensor(_) => "rdk:component:movement_sensor",
+            Self::PowerSensor(_) => "rdk:component:power_sensor",
+            Self::Sensor(_) => "rdk:component:sensor",
+            Self::Servo(_) => "rdk:component:servo"
+        }.to_string()
+    }
+}
+
 #[derive(Default)]
 pub struct LocalRobot {
     resources: ResourceMap,
     build_time: Option<DateTime<FixedOffset>>,
+    data_collectors_by_interval: HashMap<u64, Vec<DataCollector>>,
 }
 
 #[derive(Error, Debug)]
@@ -191,6 +209,7 @@ impl LocalRobot {
             // Use date time pulled off gRPC header as the `build_time` returned in the status of
             // every resource as `last_reconfigured`.
             build_time,
+            data_collectors_by_interval: HashMap::new(),
         };
 
         let components: Result<Vec<Option<DynamicComponentConfig>>, AttributeError> = config_resp
@@ -295,6 +314,9 @@ impl LocalRobot {
         registry: &mut ComponentRegistry,
     ) -> Result<(), RobotError> {
         let r_type = cfg.get_type();
+        let collector_settings: Vec<(f32, CollectionMethod)> = cfg.get_data_collector_configs().iter().map(|collector_config| {
+            (collector_config.capture_frequency_hz, collector_config.method)
+        }).collect();
         let res = match r_type {
             "motor" => {
                 let ctor = registry
@@ -361,9 +383,24 @@ impl LocalRobot {
                 ));
             }
         };
+        for (capture_frequency_hz, method) in collector_settings.iter() {
+            let time_interval = ((1.0 / *capture_frequency_hz) * 1000.0) as u64;
+            let data_coll = DataCollector::new(
+                r_name.name.to_string(),
+                res.clone(),
+                *method,
+            )?;
+            match self.data_collectors_by_interval.get_mut(&time_interval) {
+                Some(collector_vec) => { collector_vec.push(data_coll); },
+                None => { 
+                    self.data_collectors_by_interval.insert(time_interval, vec![data_coll]);
+                },
+            };
+        }
         self.resources.insert(r_name, res);
         Ok(())
     }
+
 
     pub fn get_status(
         &mut self,
@@ -727,37 +764,62 @@ impl LocalRobot {
     pub(crate) fn collect_readings(
         &mut self,
         part_id: &str,
+        time_interval_ms: &u64,
     ) -> anyhow::Result<Vec<DataCaptureUploadRequest>> {
         let mut result = vec![];
-        for (name, res) in self.resources.iter_mut() {
-            if let Some((sensor_data, component_type)) = match res {
-                ResourceType::Sensor(sensor) => {
-                    Some((get_sensor_data(sensor)?, "rdk:component:sensor".to_string()))
-                }
-                ResourceType::MovementSensor(sensor) => Some((
-                    get_sensor_data(sensor)?,
-                    "rdk:component:movementsensor".to_string(),
-                )),
-                ResourceType::PowerSensor(sensor) => Some((
-                    get_sensor_data(sensor)?,
-                    "rdk:component:powersensor".to_string(),
-                )),
-                _ => None,
-            } {
-                result.push(DataCaptureUploadRequest {
-                    metadata: Some(UploadMetadata {
-                        part_id: part_id.to_string(),
-                        component_type,
-                        component_name: name.name.to_string(),
-                        method_name: "Readings".to_string(),
-                        r#type: DataType::TabularSensor.into(),
-                        ..Default::default()
-                    }),
-                    sensor_contents: vec![sensor_data],
-                })
-            }
+        let mut empty_vec = vec![];
+        
+        for collector in self
+            .data_collectors_by_interval
+            .get_mut(time_interval_ms)
+            .unwrap_or(&mut empty_vec)
+            .iter_mut()
+        {
+            result.push(DataCaptureUploadRequest {
+                metadata: Some(UploadMetadata {
+                    part_id: part_id.to_string(),
+                    component_type: collector.component_type(),
+                    component_name: collector.name(),
+                    method_name: collector.method_str(),
+                    r#type: DataType::TabularSensor.into(),
+                    ..Default::default()
+                }),
+                sensor_contents: vec![collector.collect_data()?],
+            })
         }
+        // for (name, res) in self.resources.iter_mut() {
+        //     if let Some((sensor_data, component_type)) = match res {
+        //         ResourceType::Sensor(sensor) => {
+        //             Some((get_sensor_readings_data(sensor)?, "rdk:component:sensor".to_string()))
+        //         }
+        //         ResourceType::MovementSensor(sensor) => Some((
+        //             get_sensor_readings_data(sensor)?,
+        //             "rdk:component:movementsensor".to_string(),
+        //         )),
+        //         ResourceType::PowerSensor(sensor) => Some((
+        //             get_sensor_readings_data(sensor)?,
+        //             "rdk:component:powersensor".to_string(),
+        //         )),
+        //         _ => None,
+        //     } {
+        //         result.push(DataCaptureUploadRequest {
+        //             metadata: Some(UploadMetadata {
+        //                 part_id: part_id.to_string(),
+        //                 component_type,
+        //                 component_name: name.name.to_string(),
+        //                 method_name: "Readings".to_string(),
+        //                 r#type: DataType::TabularSensor.into(),
+        //                 ..Default::default()
+        //             }),
+        //             sensor_contents: vec![sensor_data],
+        //         })
+        //     }
+        // }
         Ok(result)
+    }
+
+    pub fn get_collector_time_intervals_ms(&self) -> Vec<u64> {
+        self.data_collectors_by_interval.keys().copied().collect()
     }
 }
 
@@ -816,6 +878,7 @@ mod tests {
                         ]),
                     ),
                 ])),
+                data_collector_configs: vec![],
             }),
             Some(DynamicComponentConfig {
                 name: "motor".to_owned(),
@@ -838,6 +901,7 @@ mod tests {
                         ])),
                     ),
                 ])),
+                data_collector_configs: vec![],
             }),
             Some(DynamicComponentConfig {
                 name: "sensor".to_owned(),
@@ -848,6 +912,7 @@ mod tests {
                     "fake_value".to_owned(),
                     Kind::StringValue("11.12".to_owned()),
                 )])),
+                data_collector_configs: vec![],
             }),
             Some(DynamicComponentConfig {
                 name: "m_sensor".to_owned(),
@@ -877,6 +942,7 @@ mod tests {
                         Kind::StringValue("100.4".to_owned()),
                     ),
                 ])),
+                data_collector_configs: vec![],
             }),
             Some(DynamicComponentConfig {
                 name: "enc1".to_owned(),
@@ -890,6 +956,7 @@ mod tests {
                         Kind::StringValue("2".to_owned()),
                     ),
                 ])),
+                data_collector_configs: vec![],
             }),
             Some(DynamicComponentConfig {
                 name: "enc2".to_owned(),
@@ -900,6 +967,7 @@ mod tests {
                     "fake_ticks".to_owned(),
                     Kind::StringValue("3.0".to_owned()),
                 )])),
+                data_collector_configs: vec![],
             }),
         ];
 
