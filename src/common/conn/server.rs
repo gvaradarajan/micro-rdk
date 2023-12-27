@@ -281,6 +281,22 @@ impl TaskIndicesToTimeIntervals {
     pub fn original_intervals(&self) -> Vec<u64> {
         self.original_intervals.to_vec()
     }
+
+    // pub fn advance_wait_time(&mut self, milliseconds: u64) -> Vec<usize> {
+    //     let mut task_indices = vec![];
+    //     for (i, time_remaining) in self.remaining_times.iter_mut().enumerate() {
+    //         if *time_remaining > milliseconds {
+    //             *time_remaining -= milliseconds;
+    //         } else {
+    //             let missed_task_instances = (milliseconds / *time_remaining) as usize;
+    //             *time_remaining = *self.original_intervals.get(i).unwrap();
+    //             for _ in (0..missed_task_instances) {
+    //                 task_indices.push(i)
+    //             }
+    //         }
+    //     }
+    //     task_indices
+    // }
 }
 
 impl Iterator for TaskIndicesToTimeIntervals {
@@ -345,6 +361,8 @@ where
         let cloned_robot = robot.clone();
         let mut current_prio = None;
         let mut task_intervals = robot.lock().unwrap().get_collector_time_intervals_ms();
+        let min_interval = task_intervals.iter().min().map(|c| *c).unwrap_or_default();
+        let data_collection_active = task_intervals.len() != 0;
         let connection_task_index = task_intervals.len();
         task_intervals.push(300);
         let mut tasks = TaskIndicesToTimeIntervals::new(task_intervals).unwrap();
@@ -394,12 +412,26 @@ where
 
                     let connection = futures_lite::future::or(
                         async move {
-                            let p = listener.await;
+                            let p = if data_collection_active {
+                                match listener.timeout(std::time::Duration::from_millis(min_interval)).await {
+                                    Some(res) => res.map_err(|e| ServerError::Other(e.into())),
+                                    None => Err(ServerError::ServerConnectionTimeout)
+                                }
+                            } else {
+                                listener.await.map_err(|e| ServerError::Other(e.into()))
+                            };
                             p.map(IncomingConnection::Http2Connection)
-                                .map_err(|e| ServerError::Other(e.into()))
                         },
                         async {
-                            let mut api = sig.await?;
+                            let mut api = if data_collection_active {
+                                match sig.timeout(std::time::Duration::from_millis(min_interval)).await {
+                                    Some(res) => res,
+                                    None => Err(ServerError::ServerConnectionTimeout)
+                                }
+                            } else {
+                                sig.await
+                            }?;
+                            // let mut api = sig.await?;
 
                             let prio = self
                                 .webtrc_conn

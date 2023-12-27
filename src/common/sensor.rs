@@ -2,6 +2,7 @@
 
 use crate::common::status::Status;
 use crate::google;
+use crate::google::protobuf::Timestamp;
 use crate::proto::app::data_sync::v1::SensorMetadata;
 use crate::proto::app::data_sync::v1::{sensor_data::Data, SensorData};
 
@@ -45,10 +46,12 @@ pub fn get_sensor_readings_data(sensor: &mut dyn Readings) -> anyhow::Result<Sen
         )]),
     });
 
+    let current_date = chrono::offset::Local::now().fixed_offset();
+
     Ok(SensorData {
         metadata: Some(SensorMetadata {
-            time_received: Some(google::protobuf::Timestamp::default()),
-            time_requested: Some(google::protobuf::Timestamp::default()),
+            time_received: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+                time_requested: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
         }),
         // metadata: None,
         data: Some(data_struct),

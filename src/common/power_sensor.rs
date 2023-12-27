@@ -57,10 +57,11 @@ impl From<Voltage> for component::power_sensor::v1::GetVoltageResponse {
 
 impl From<Voltage> for SensorData {
     fn from(value: Voltage) -> Self {
+        let current_date = chrono::offset::Local::now().fixed_offset();
         SensorData {
             metadata: Some(SensorMetadata {
-                time_received: Some(Timestamp::default()),
-                time_requested: Some(Timestamp::default()),
+                time_received: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+                time_requested: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
             }),
             data: Some(sensor_data::Data::Struct(Struct {
                 fields: HashMap::from([(
@@ -105,10 +106,11 @@ impl From<Current> for component::power_sensor::v1::GetCurrentResponse {
 
 impl From<Current> for SensorData {
     fn from(value: Current) -> Self {
+        let current_date = chrono::offset::Local::now().fixed_offset();
         SensorData {
             metadata: Some(SensorMetadata {
-                time_received: Some(Timestamp::default()),
-                time_requested: Some(Timestamp::default()),
+                time_received: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+                time_requested: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
             }),
             data: Some(sensor_data::Data::Struct(Struct {
                 fields: HashMap::from([(
