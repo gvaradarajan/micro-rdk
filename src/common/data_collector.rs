@@ -1,3 +1,5 @@
+// use std::collections::HashMap;
+
 use crate::proto::app::data_sync::v1::SensorData;
 
 use super::{
@@ -5,10 +7,10 @@ use super::{
     movement_sensor::MovementSensor,
     power_sensor::PowerSensor,
     robot::ResourceType,
-    sensor::get_sensor_readings_data,
+    sensor::get_sensor_readings_data, board::get_analog_readings_data,
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct DataCollectorConfig {
     pub method: CollectionMethod,
     pub capture_frequency_hz: f32,
@@ -27,22 +29,43 @@ impl TryFrom<&Kind> for DataCollectorConfig {
         }
         let method_str: String = value.get("method")?.ok_or(AttributeError::KeyNotFound("method".to_string()))?.try_into()?;
         let capture_frequency_hz = value.get("capture_frequency_hz")?.ok_or(AttributeError::KeyNotFound("capture_frequency_hz".to_string()))?.try_into()?;
+        let parameters: &Kind = if let Ok(Some(params)) = value.get("additional_params") {
+            params
+        } else {
+            &Kind::NullValue(0)
+        };
+        let method = match method_str.as_str() {
+            "Readings" => CollectionMethod::Readings,
+            "AngularVelocity" => CollectionMethod::AngularVelocity,
+            "LinearAcceleration" => CollectionMethod::LinearAcceleration,
+            "LinearVelocity" => CollectionMethod::LinearVelocity,
+            "Voltage" => CollectionMethod::Voltage,
+            "Current" => CollectionMethod::Current,
+            "Analogs" => {
+                let analog_reader_name: String = parameters.get("reader_name")?.ok_or(AttributeError::KeyNotFound("reader_name".to_string()))?.try_into()?;
+                CollectionMethod::Analogs(analog_reader_name)
+            },
+            _ => { return Err(AttributeError::ConversionImpossibleError); },
+        };
         Ok(DataCollectorConfig {
-            method: method_str.try_into()?,
+            method,
             capture_frequency_hz,
         })
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum CollectionMethod {
     Readings,
     // MovementSensor methods
     AngularVelocity,
     LinearAcceleration,
     LinearVelocity,
+    // PowerSensor methods
     Voltage,
     Current,
+    // Board
+    Analogs(String)
 }
 
 impl CollectionMethod {
@@ -53,22 +76,8 @@ impl CollectionMethod {
             Self::LinearAcceleration => "linearacceleration".to_string(),
             Self::LinearVelocity => "linearvelocity".to_string(),
             Self::Voltage => "voltage".to_string(),
-            Self::Current => "current".to_string()
-        }
-    }
-}
-
-impl TryFrom<String> for CollectionMethod {
-    type Error = AttributeError;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.as_str() {
-            "Readings" => Ok(Self::Readings),
-            "AngularVelocity" => Ok(Self::AngularVelocity),
-            "LinearAcceleration" => Ok(Self::LinearAcceleration),
-            "LinearVelocity" => Ok(Self::LinearVelocity),
-            "Voltage" => Ok(Self::Voltage),
-            "Current" => Ok(Self::Current),
-            _ => Err(AttributeError::ConversionImpossibleError),
+            Self::Current => "current".to_string(),
+            Self::Analogs(_) => "analogs".to_string()
         }
     }
 }
@@ -80,11 +89,12 @@ pub struct DataCollector {
     method: CollectionMethod,
 }
 
-fn resource_method_pair_is_valid(resource: &ResourceType, method: CollectionMethod) -> bool {
+fn resource_method_pair_is_valid(resource: &ResourceType, method: &CollectionMethod) -> bool {
     match resource {
         ResourceType::Sensor(_) => matches!(method, CollectionMethod::Readings),
         ResourceType::MovementSensor(_) => matches!(method, CollectionMethod::Readings | CollectionMethod::AngularVelocity | CollectionMethod::LinearAcceleration | CollectionMethod::LinearVelocity),
         ResourceType::PowerSensor(_) => matches!(method, CollectionMethod::Readings | CollectionMethod::Voltage | CollectionMethod::Current),
+        ResourceType::Board(_) => matches!(method, CollectionMethod::Analogs(_)),
         _ => false,
     }
 }
@@ -96,10 +106,10 @@ impl DataCollector {
         method: CollectionMethod,
     ) -> anyhow::Result<Self> {
         let component_type = resource.component_type();
-        if !resource_method_pair_is_valid(&resource, method) {
+        if !resource_method_pair_is_valid(&resource, &method) {
             anyhow::bail!(
                 "cannot collect data on method {:?} for {:?} named {:?}",
-                method,
+                method.clone(),
                 component_type,
                 name
             )
@@ -148,6 +158,12 @@ impl DataCollector {
                 CollectionMethod::Current => res.get_current()?.into(),
                 _ => unreachable!(),
             },
+            ResourceType::Board(ref mut res) => match &self.method {
+                CollectionMethod::Analogs(name) => {
+                    get_analog_readings_data(res, name.to_string())?
+                },
+                _ => unreachable!()
+            }
             _ => unreachable!(),
         })
     }

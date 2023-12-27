@@ -315,7 +315,7 @@ impl LocalRobot {
     ) -> Result<(), RobotError> {
         let r_type = cfg.get_type();
         let collector_settings: Vec<(f32, CollectionMethod)> = cfg.get_data_collector_configs().iter().map(|collector_config| {
-            (collector_config.capture_frequency_hz, collector_config.method)
+            (collector_config.capture_frequency_hz, collector_config.method.clone())
         }).collect();
         let res = match r_type {
             "motor" => {
@@ -388,7 +388,7 @@ impl LocalRobot {
             let data_coll = DataCollector::new(
                 r_name.name.to_string(),
                 res.clone(),
-                *method,
+                method.clone(),
             )?;
             match self.data_collectors_by_interval.get_mut(&time_interval) {
                 Some(collector_vec) => { collector_vec.push(data_coll); },
