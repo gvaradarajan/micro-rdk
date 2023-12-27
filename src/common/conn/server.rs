@@ -361,7 +361,7 @@ where
         let cloned_robot = robot.clone();
         let mut current_prio = None;
         let mut task_intervals = robot.lock().unwrap().get_collector_time_intervals_ms();
-        let min_interval = task_intervals.iter().min().copied().unwrap_or_default();
+        let min_interval = std::cmp::min(task_intervals.iter().min().copied().unwrap_or_default(), 5000);
         let data_collection_active = !task_intervals.is_empty();
         let connection_task_index = task_intervals.len();
         task_intervals.push(300);
