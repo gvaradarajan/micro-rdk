@@ -33,19 +33,42 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 }
 
 pub fn get_analog_readings_data(board: &mut dyn Board, name: String) -> anyhow::Result<SensorData> {
-    let analog_reader = board.get_analog_reader_by_name(name)?;
+    let analog_reader = board.get_analog_reader_by_name(name.clone())?;
+    // println!("got analog reader for name {:?}", name);
     let value = analog_reader.borrow_mut().read()?;
+    // println!("read analog reader for name {:?}", name);
     let current_date = chrono::offset::Local::now().fixed_offset();
+
+    // let data_struct = Data::Struct(google::protobuf::Struct {
+    //     fields: HashMap::from([(
+    //         "readings".to_string(),
+    //         google::protobuf::Value {
+    //             kind: Some(google::protobuf::value::Kind::ListValue(google::protobuf::ListValue { 
+    //                 values: vec![
+    //                     google::protobuf::Value {
+    //                         kind: Some(google::protobuf::value::Kind::StructValue(
+    //                             google::protobuf::Struct { fields: HashMap::from([
+    //                                 ("analog_value".to_string(), google::protobuf::Value { kind: Some(google::protobuf::value::Kind::NumberValue(value as f64)) }),
+    //                                 ("analog_name".to_string(), google::protobuf::Value { kind: Some(google::protobuf::value::Kind::StringValue(name)) })
+    //                             ]) },
+    //                         ))
+    //                     }
+    //                 ]
+    //             }))
+    //         },
+    //     )]),
+    // });
 
     let data_struct = Data::Struct(google::protobuf::Struct {
         fields: HashMap::from([(
             "analogs".to_string(),
             google::protobuf::Value {
                 kind: Some(google::protobuf::value::Kind::StructValue(
-                    google::protobuf::Struct { fields: HashMap::from([(
-                        "value".to_string(), google::protobuf::Value { kind: Some(google::protobuf::value::Kind::NumberValue(value as f64)) }
-                    )]) },
-                )),
+                    google::protobuf::Struct { fields: HashMap::from([
+                        ("value".to_string(), google::protobuf::Value { kind: Some(google::protobuf::value::Kind::NumberValue(value as f64)) }),
+                        // ("analog_name".to_string(), google::protobuf::Value { kind: Some(google::protobuf::value::Kind::StringValue(name)) })
+                    ]) },
+                ))
             },
         )]),
     });

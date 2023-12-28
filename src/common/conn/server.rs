@@ -361,7 +361,7 @@ where
         let cloned_robot = robot.clone();
         let mut current_prio = None;
         let mut task_intervals = robot.lock().unwrap().get_collector_time_intervals_ms();
-        let min_interval = std::cmp::min(task_intervals.iter().min().copied().unwrap_or_default(), 5000);
+        // let min_interval = std::cmp::min(task_intervals.iter().min().copied().unwrap_or_default(), 5000);
         let data_collection_active = !task_intervals.is_empty();
         let connection_task_index = task_intervals.len();
         task_intervals.push(300);
@@ -413,7 +413,7 @@ where
                     let connection = futures_lite::future::or(
                         async move {
                             let p = if data_collection_active {
-                                match listener.timeout(std::time::Duration::from_millis(min_interval)).await {
+                                match listener.timeout(std::time::Duration::from_millis(5000)).await {
                                     Some(res) => res.map_err(|e| ServerError::Other(e.into())),
                                     None => Err(ServerError::ServerConnectionTimeout)
                                 }
@@ -424,7 +424,7 @@ where
                         },
                         async {
                             let mut api = if data_collection_active {
-                                match sig.timeout(std::time::Duration::from_millis(min_interval)).await {
+                                match sig.timeout(std::time::Duration::from_millis(5000)).await {
                                     Some(res) => res,
                                     None => Err(ServerError::ServerConnectionTimeout)
                                 }
