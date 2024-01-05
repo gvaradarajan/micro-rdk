@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use super::config::{AttributeError, Kind};
+use std::sync::{Arc, Mutex};
 
 pub struct FakeAnalogReader {
     name: String,
@@ -52,6 +53,19 @@ impl TryFrom<&Kind> for AnalogReaderConfig {
         let name = value.get("name")?.unwrap().try_into()?;
         let pin: i32 = value.get("pin")?.unwrap().try_into()?;
         Ok(Self { name, pin })
+    }
+}
+
+impl<A, Word> AnalogReader<Word> for Arc<Mutex<A>>
+where
+    A: ?Sized + AnalogReader<Word>
+{
+    type Error = A::Error;
+    fn read(&mut self) -> Result<Word, Self::Error> {
+        self.lock().unwrap().read()
+    }
+    fn name(&self) -> String {
+        self.lock().unwrap().name()
     }
 }
 

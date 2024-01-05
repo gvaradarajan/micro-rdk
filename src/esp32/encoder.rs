@@ -273,7 +273,7 @@ where
     A: InputPin + PinExt,
     B: InputPin + PinExt,
 {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
             fields: HashMap::new(),
         }))

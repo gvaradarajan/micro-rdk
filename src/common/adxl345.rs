@@ -147,7 +147,7 @@ impl MovementSensor for ADXL345 {
 }
 
 impl Status for ADXL345 {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
             fields: HashMap::new(),
         }))

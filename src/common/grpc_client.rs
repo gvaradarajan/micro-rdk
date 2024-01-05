@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 #[cfg(feature = "esp32")]
-use crate::esp32::exec::Esp32Executor;
+use {
+    crate::esp32::exec::Esp32Executor,
+    esp_idf_sys::uxTaskGetStackHighWaterMark,
+};
 #[cfg(feature = "native")]
 use crate::native::exec::NativeExecutor;
 use bytes::{BufMut, Bytes, BytesMut};
@@ -152,6 +155,7 @@ where
 type Executor<'a> = NativeExecutor<'a>;
 #[cfg(feature = "esp32")]
 type Executor<'a> = Esp32Executor<'a>;
+// type Executor<'a> = Esp32Executor<'a>;
 pub struct GrpcClient<'a> {
     executor: Executor<'a>,
     http2_connection: SendRequest<Bytes>,
@@ -176,6 +180,12 @@ impl<'a> GrpcClient<'a> {
     where
         T: AsyncRead + AsyncWrite + Unpin + 'a,
     {
+        #[cfg(feature = "esp32")]
+        println!(
+            "remaining stack size A at {:?}: {:?}", 
+            std::thread::current().name(),
+            unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) }
+        );
         let (http2_connection, conn) = block_on(executor.run(async {
             let builder = h2::client::Builder::new()
                 .initial_connection_window_size(4096)
@@ -186,7 +196,12 @@ impl<'a> GrpcClient<'a> {
             let conn = builder.await.unwrap();
             (conn.0, Box::new(conn.1))
         }));
-
+        #[cfg(feature = "esp32")]
+        println!(
+            "remaining stack size B at {:?}: {:?}", 
+            std::thread::current().name(),
+            unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) }
+        );
         let http2_task = executor.spawn(async move {
             if let Err(e) = conn.await {
                 log::error!("GrpcClient failed with {:?}", e);

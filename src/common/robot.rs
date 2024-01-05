@@ -586,7 +586,7 @@ impl LocalRobot {
         }
         Ok(name)
     }
-    pub fn get_motor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Motor>>> {
+    pub fn get_motor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Motor + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -600,7 +600,7 @@ impl LocalRobot {
         }
     }
     #[cfg(feature = "camera")]
-    pub fn get_camera_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Camera>>> {
+    pub fn get_camera_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Camera + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -613,7 +613,7 @@ impl LocalRobot {
             None => None,
         }
     }
-    pub fn get_base_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Base>>> {
+    pub fn get_base_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Base + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -626,7 +626,7 @@ impl LocalRobot {
             None => None,
         }
     }
-    pub fn get_board_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Board>>> {
+    pub fn get_board_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Board + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -639,7 +639,7 @@ impl LocalRobot {
             None => None,
         }
     }
-    pub fn get_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Sensor>>> {
+    pub fn get_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Sensor + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -656,7 +656,7 @@ impl LocalRobot {
     pub fn get_movement_sensor_by_name(
         &self,
         name: String,
-    ) -> Option<Arc<Mutex<dyn MovementSensor>>> {
+    ) -> Option<Arc<Mutex<dyn MovementSensor + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -670,7 +670,7 @@ impl LocalRobot {
         }
     }
 
-    pub fn get_encoder_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Encoder>>> {
+    pub fn get_encoder_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Encoder + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -684,7 +684,7 @@ impl LocalRobot {
         }
     }
 
-    pub fn get_power_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn PowerSensor>>> {
+    pub fn get_power_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn PowerSensor + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -698,7 +698,7 @@ impl LocalRobot {
         }
     }
 
-    pub fn get_servo_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Servo>>> {
+    pub fn get_servo_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Servo + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -715,7 +715,7 @@ impl LocalRobot {
     pub fn get_generic_component_by_name(
         &self,
         name: String,
-    ) -> Option<Arc<Mutex<dyn GenericComponent>>> {
+    ) -> Option<Arc<Mutex<dyn GenericComponent + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -1002,7 +1002,6 @@ mod tests {
             .get_analog_reader_by_name("1".to_string())
             .unwrap()
             .clone()
-            .borrow_mut()
             .read();
 
         assert!(value.is_ok());

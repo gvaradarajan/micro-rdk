@@ -82,29 +82,29 @@ impl TryFrom<ResourceName> for ResourceKey {
 
 pub struct Dependency(pub ResourceKey, pub Resource);
 
-/// Fn that returns a `BoardType`, `Arc<Mutex<dyn Board>>`
+/// Fn that returns a `BoardType`, `Arc<Mutex<dyn Board + Send>>`
 type BoardConstructor = dyn Fn(ConfigType) -> anyhow::Result<BoardType>;
 
-/// Fn that returns a `MotorType`, `Arc<Mutex<dyn Motor>>`
+/// Fn that returns a `MotorType`, `Arc<Mutex<dyn Motor + Send>>`
 type MotorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<MotorType>;
 
-/// Fn that returns a `SensorType`, `Arc<Mutex<dyn Sensor>>`
+/// Fn that returns a `SensorType`, `Arc<Mutex<dyn Sensor + Send>>`
 type SensorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<SensorType>;
 
-/// Fn that returns a `MovementSensorType`, `Arc<Mutex<dyn MovementSensor>>`
+/// Fn that returns a `MovementSensorType`, `Arc<Mutex<dyn MovementSensor + Send>>`
 type MovementSensorConstructor =
     dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<MovementSensorType>;
 
-/// Fn that returns an `EncoderType`, `Arc<Mutex<dyn Encoder>>`
+/// Fn that returns an `EncoderType`, `Arc<Mutex<dyn Encoder + Send>>`
 type EncoderConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<EncoderType>;
 
-/// Fn that returns an `BaseType`, `Arc<Mutex<dyn Base>>`
+/// Fn that returns an `BaseType`, `Arc<Mutex<dyn Base + Send>>`
 type BaseConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<BaseType>;
 
-/// Fn that returns a `ServoType`, `Arc<Mutex<dyn Servo>>`
+/// Fn that returns a `ServoType`, `Arc<Mutex<dyn Servo + Send>>`
 type ServoConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<ServoType>;
 
-/// Fn that returns a `PowerSensorType`, `Arc<Mutex<dyn PowerSensor>>`
+/// Fn that returns a `PowerSensorType`, `Arc<Mutex<dyn PowerSensor + Send>>`
 type PowerSensorConstructor =
     dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<PowerSensorType>;
 
@@ -471,7 +471,7 @@ mod tests {
     }
 
     impl SensorT<f64> for TestSensor {
-        fn get_readings(&self) -> anyhow::Result<TypedReadingsResult<f64>> {
+        fn get_readings(&mut self) -> anyhow::Result<TypedReadingsResult<f64>> {
             let mut x = std::collections::HashMap::new();
             x.insert("test_sensor".to_string(), 42.0);
             Ok(x)
@@ -479,7 +479,7 @@ mod tests {
     }
 
     impl Status for TestSensor {
-        fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+        fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
             Ok(Some(google::protobuf::Struct {
                 fields: HashMap::new(),
             }))

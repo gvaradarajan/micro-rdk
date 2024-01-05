@@ -1,12 +1,13 @@
 #![allow(dead_code)]
 use anyhow::Context;
-use core::cell::RefCell;
+// use core::cell::RefCell;
 use log::*;
 use std::{
     collections::HashMap,
-    rc::Rc,
+    // rc::Rc,
     sync::{Arc, Mutex},
     time::Duration,
+    // borrow::{Borrow, BorrowMut},
 };
 
 use crate::{
@@ -50,14 +51,14 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 #[derive(DoCommand)]
 pub struct EspBoard {
     pins: Vec<Esp32GPIOPin>,
-    analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>,
+    analogs: Vec<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>>,
     i2cs: HashMap<String, I2cHandleType>,
 }
 
 impl EspBoard {
     pub fn new(
         pins: Vec<Esp32GPIOPin>,
-        analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>,
+        analogs: Vec<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>>,
         i2cs: HashMap<String, I2cHandleType>,
     ) -> Self {
         EspBoard {
@@ -74,23 +75,23 @@ impl EspBoard {
             let analogs = if let Ok(analogs) =
                 cfg.get_attribute::<Vec<AnalogReaderConfig>>("analogs")
             {
-                let analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>> =
+                let analogs: Vec<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>> =
                     analogs
                         .iter()
                         .filter_map(|v| {
-                            let adc1 = Rc::new(RefCell::new(
+                            let adc1 = Arc::new(Mutex::new(
                                 AdcDriver::new(
                                     unsafe { ADC1::new() },
                                     &Config::new().calibration(true),
                                 )
                                 .ok()?,
                             ));
-                            let chan: Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>> =
+                            let chan: Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>> =
                                 match v.pin {
                                     32 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        let p: Arc<
+                                            Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>,
+                                        > = Arc::new(Mutex::new(Esp32AnalogReader::new(
                                             v.name.to_string(),
                                             AdcChannelDriver::<Atten11dB, _>::new(unsafe {
                                                 esp_idf_hal::gpio::Gpio32::new()
@@ -101,9 +102,9 @@ impl EspBoard {
                                         Some(p)
                                     }
                                     33 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        let p: Arc<
+                                            Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>,
+                                        > = Arc::new(Mutex::new(Esp32AnalogReader::new(
                                             v.name.to_string(),
                                             AdcChannelDriver::<Atten11dB, _>::new(unsafe {
                                                 esp_idf_hal::gpio::Gpio33::new()
@@ -114,9 +115,9 @@ impl EspBoard {
                                         Some(p)
                                     }
                                     34 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        let p: Arc<
+                                            Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>,
+                                        > = Arc::new(Mutex::new(Esp32AnalogReader::new(
                                             v.name.to_string(),
                                             AdcChannelDriver::<Atten11dB, _>::new(unsafe {
                                                 esp_idf_hal::gpio::Gpio34::new()
@@ -127,9 +128,9 @@ impl EspBoard {
                                         Some(p)
                                     }
                                     35 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        let p: Arc<
+                                            Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>,
+                                        > = Arc::new(Mutex::new(Esp32AnalogReader::new(
                                             v.name.to_string(),
                                             AdcChannelDriver::<Atten11dB, _>::new(unsafe {
                                                 esp_idf_hal::gpio::Gpio35::new()
@@ -140,9 +141,9 @@ impl EspBoard {
                                         Some(p)
                                     }
                                     36 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        let p: Arc<
+                                            Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>,
+                                        > = Arc::new(Mutex::new(Esp32AnalogReader::new(
                                             v.name.to_string(),
                                             AdcChannelDriver::<Atten11dB, _>::new(unsafe {
                                                 esp_idf_hal::gpio::Gpio36::new()
@@ -153,9 +154,9 @@ impl EspBoard {
                                         Some(p)
                                     }
                                     37 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        let p: Arc<
+                                            Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>,
+                                        > = Arc::new(Mutex::new(Esp32AnalogReader::new(
                                             v.name.to_string(),
                                             AdcChannelDriver::<Atten11dB, _>::new(unsafe {
                                                 esp_idf_hal::gpio::Gpio37::new()
@@ -166,9 +167,9 @@ impl EspBoard {
                                         Some(p)
                                     }
                                     38 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        let p: Arc<
+                                            Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>,
+                                        > = Arc::new(Mutex::new(Esp32AnalogReader::new(
                                             v.name.to_string(),
                                             AdcChannelDriver::<Atten11dB, _>::new(unsafe {
                                                 esp_idf_hal::gpio::Gpio38::new()
@@ -179,9 +180,9 @@ impl EspBoard {
                                         Some(p)
                                     }
                                     39 => {
-                                        let p: Rc<
-                                            RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>,
-                                        > = Rc::new(RefCell::new(Esp32AnalogReader::new(
+                                        let p: Arc<
+                                            Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>,
+                                        > = Arc::new(Mutex::new(Esp32AnalogReader::new(
                                             v.name.to_string(),
                                             AdcChannelDriver::<Atten11dB, _>::new(unsafe {
                                                 esp_idf_hal::gpio::Gpio39::new()
@@ -314,17 +315,17 @@ impl Board for EspBoard {
             .context(format!("pin {pin} not registered on board"))?;
         pin.set_pwm_frequency(frequency_hz)
     }
-    fn get_board_status(&self) -> anyhow::Result<common::v1::BoardStatus> {
+    fn get_board_status(&mut self) -> anyhow::Result<common::v1::BoardStatus> {
         let mut b = common::v1::BoardStatus {
             analogs: HashMap::new(),
             digital_interrupts: HashMap::new(),
         };
-        self.analogs.iter().for_each(|a| {
-            let mut borrowed = a.borrow_mut();
+        self.analogs.iter_mut().for_each(|a| {
+            // let mut borrowed = a.borrow_mut();
             b.analogs.insert(
-                borrowed.name(),
+                a.name(),
                 common::v1::AnalogStatus {
-                    value: borrowed.read().unwrap_or(0).into(),
+                    value: a.read().unwrap_or(0).into(),
                 },
             );
         });
@@ -333,8 +334,8 @@ impl Board for EspBoard {
     fn get_analog_reader_by_name(
         &self,
         name: String,
-    ) -> anyhow::Result<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>> {
-        match self.analogs.iter().find(|a| a.borrow().name() == name) {
+    ) -> anyhow::Result<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>> {
+        match self.analogs.iter().find(|a| a.name() == name) {
             Some(reader) => Ok(reader.clone()),
             None => Err(anyhow::anyhow!("couldn't find analog reader {}", name)),
         }
@@ -402,13 +403,13 @@ impl Board for EspBoard {
 }
 
 impl Status for EspBoard {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         let mut analogs = HashMap::new();
-        self.analogs.iter().for_each(|a| {
-            let mut borrowed = a.borrow_mut();
+        self.analogs.iter_mut().for_each(|a| {
+            // let mut borrowed = a.borrow_mut();
             analogs.insert(
-                borrowed.name(),
+                a.name(),
                 google::protobuf::Value {
                     kind: Some(google::protobuf::value::Kind::StructValue(
                         google::protobuf::Struct {
@@ -416,7 +417,7 @@ impl Status for EspBoard {
                                 "value".to_string(),
                                 google::protobuf::Value {
                                     kind: Some(google::protobuf::value::Kind::NumberValue(
-                                        borrowed.read().unwrap_or(0).into(),
+                                        a.read().unwrap_or(0).into(),
                                     )),
                                 },
                             )]),

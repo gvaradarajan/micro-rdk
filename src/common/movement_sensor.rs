@@ -109,7 +109,7 @@ pub trait MovementSensor: Status + Readings + DoCommand {
     fn get_properties(&self) -> MovementSensorSupportedMethods;
 }
 
-pub type MovementSensorType = Arc<Mutex<dyn MovementSensor>>;
+pub type MovementSensorType = Arc<Mutex<dyn MovementSensor + Send>>;
 
 pub fn get_movement_sensor_generic_readings(
     ms: &mut dyn MovementSensor,
@@ -241,7 +241,7 @@ impl MovementSensor for FakeMovementSensor {
 }
 
 impl Status for FakeMovementSensor {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
             fields: HashMap::new(),
         }))

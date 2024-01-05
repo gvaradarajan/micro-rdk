@@ -15,6 +15,9 @@
 //!   - if AD0 is wired to hot, it uses the alternate I2C address of 0x69
 //!
 
+#[cfg(feature = "esp32")]
+use esp_idf_sys::uxTaskGetStackHighWaterMark;
+
 use crate::common::i2c::I2cHandleType;
 use crate::common::math_utils::Vector3;
 use crate::common::movement_sensor::{MovementSensor, MovementSensorSupportedMethods};
@@ -47,7 +50,7 @@ const READING_START_REGISTER: u8 = 59;
 const STANDBY_MODE_REGISTER: u8 = 107;
 const MAX_I16: f64 = 32768.0;
 
-#[derive(DoCommand, MovementSensorReadings)]
+#[derive(DoCommand, Clone, MovementSensorReadings)]
 pub struct MPU6050 {
     i2c_handle: I2cHandleType,
     i2c_address: u8,
@@ -157,6 +160,8 @@ impl MovementSensor for MPU6050 {
     fn get_angular_velocity(&mut self) -> anyhow::Result<Vector3> {
         let register_write: [u8; 1] = [READING_START_REGISTER];
         let mut result: [u8; 14] = [0; 14];
+        #[cfg(feature = "esp32")]
+        println!("ang vel stack size: {:?}", unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) });
         self.i2c_handle
             .write_read_i2c(self.i2c_address, &register_write, &mut result)?;
         Ok(get_angular_velocity_from_reading(&result))
@@ -184,7 +189,7 @@ impl MovementSensor for MPU6050 {
 }
 
 impl Status for MPU6050 {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
             fields: HashMap::new(),
         }))

@@ -84,7 +84,7 @@ impl Actuator for SingleEncodedMotor {
 }
 
 impl Status for SingleEncodedMotor {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         let pos = self
             .encoder

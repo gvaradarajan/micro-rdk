@@ -150,7 +150,7 @@ pub trait PowerSensor: Status + Readings + DoCommand {
     fn get_power(&mut self) -> anyhow::Result<f64>;
 }
 
-pub type PowerSensorType = Arc<Mutex<dyn PowerSensor>>;
+pub type PowerSensorType = Arc<Mutex<dyn PowerSensor + Send>>;
 
 pub fn get_power_sensor_generic_readings(
     ps: &mut dyn PowerSensor,

@@ -9,9 +9,9 @@ use crate::{
 
 use crate::{proto::app::data_sync::v1::{SensorData, SensorMetadata, sensor_data::Data}, google::protobuf::Timestamp};
 
-use core::cell::RefCell;
+// use core::cell::RefCell;
 use log::*;
-use std::{collections::HashMap, rc::Rc, sync::Arc, sync::Mutex, time::Duration};
+use std::{collections::HashMap, sync::Arc, sync::Mutex, time::Duration};
 
 use super::{
     analog::FakeAnalogReader,
@@ -33,9 +33,9 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 }
 
 pub fn get_analog_readings_data(board: &mut dyn Board, name: String) -> anyhow::Result<SensorData> {
-    let analog_reader = board.get_analog_reader_by_name(name.clone())?;
+    let mut analog_reader = board.get_analog_reader_by_name(name.clone())?;
     // println!("got analog reader for name {:?}", name);
-    let value = analog_reader.borrow_mut().read()?;
+    let value = analog_reader.read()?;
     // println!("read analog reader for name {:?}", name);
     let current_date = chrono::offset::Local::now().fixed_offset();
 
@@ -88,7 +88,7 @@ pub trait Board: Status + DoCommand {
     fn set_gpio_pin_level(&mut self, pin: i32, is_high: bool) -> anyhow::Result<()>;
 
     /// Return the current [BoardStatus](common::v1::BoardStatus) of the board
-    fn get_board_status(&self) -> anyhow::Result<common::v1::BoardStatus>;
+    fn get_board_status(&mut self) -> anyhow::Result<common::v1::BoardStatus>;
 
     /// Get the state of a pin, high(`true`) or low(`false`)
     fn get_gpio_level(&self, pin: i32) -> anyhow::Result<bool>;
@@ -97,7 +97,7 @@ pub trait Board: Status + DoCommand {
     fn get_analog_reader_by_name(
         &self,
         name: String,
-    ) -> anyhow::Result<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>;
+    ) -> anyhow::Result<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>>;
 
     /// Set the board to the indicated [PowerMode](component::board::v1::PowerMode)
     fn set_power_mode(
@@ -131,20 +131,20 @@ pub trait Board: Status + DoCommand {
 }
 
 /// An alias for a thread-safe handle to a struct that implements the [Board] trait
-pub type BoardType = Arc<Mutex<dyn Board>>;
+pub type BoardType = Arc<Mutex<dyn Board + Send>>;
 
 #[doc(hidden)]
 /// A test implementation of a generic compute board
 #[derive(DoCommand)]
 pub struct FakeBoard {
-    analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>,
+    analogs: Vec<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>>,
     i2cs: HashMap<String, Arc<Mutex<FakeI2CHandle>>>,
     pin_pwms: HashMap<i32, f64>,
     pin_pwm_freq: HashMap<i32, u64>,
 }
 
 impl FakeBoard {
-    pub fn new(analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>>) -> Self {
+    pub fn new(analogs: Vec<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>>) -> Self {
         let mut i2cs: HashMap<String, Arc<Mutex<FakeI2CHandle>>> = HashMap::new();
         let i2c0 = Arc::new(Mutex::new(FakeI2CHandle::new("i2c0".to_string())));
         i2cs.insert(i2c0.name(), i2c0);
@@ -163,8 +163,8 @@ impl FakeBoard {
             analog_confs
                 .iter()
                 .map(|(k, v)| {
-                    let a: Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>> = Rc::new(
-                        RefCell::new(FakeAnalogReader::new(k.to_string(), *v as u16)),
+                    let a: Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>> = Arc::new(
+                        Mutex::new(FakeAnalogReader::new(k.to_string(), *v as u16)),
                     );
                     a
                 })
@@ -202,17 +202,17 @@ impl Board for FakeBoard {
         Ok(())
     }
 
-    fn get_board_status(&self) -> anyhow::Result<common::v1::BoardStatus> {
+    fn get_board_status(&mut self) -> anyhow::Result<common::v1::BoardStatus> {
         let mut b = common::v1::BoardStatus {
             analogs: HashMap::new(),
             digital_interrupts: HashMap::new(),
         };
-        self.analogs.iter().for_each(|a| {
-            let mut borrowed = a.borrow_mut();
+        self.analogs.iter_mut().for_each(|a| {
+            // let mut borrowed = a.borrow_mut();
             b.analogs.insert(
-                borrowed.name(),
+                a.name(),
                 common::v1::AnalogStatus {
-                    value: borrowed.read().unwrap_or(0).into(),
+                    value: a.read().unwrap_or(0).into(),
                 },
             );
         });
@@ -227,8 +227,8 @@ impl Board for FakeBoard {
     fn get_analog_reader_by_name(
         &self,
         name: String,
-    ) -> anyhow::Result<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>> {
-        match self.analogs.iter().find(|a| a.borrow().name() == name) {
+    ) -> anyhow::Result<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>> {
+        match self.analogs.iter().find(|a| a.name() == name) {
             Some(reader) => Ok(reader.clone()),
             None => Err(anyhow::anyhow!("couldn't find analog reader {}", name)),
         }
@@ -278,13 +278,13 @@ impl Board for FakeBoard {
 }
 
 impl Status for FakeBoard {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         let mut analogs = HashMap::new();
-        self.analogs.iter().for_each(|a| {
-            let mut borrowed = a.borrow_mut();
+        self.analogs.iter_mut().for_each(|a| {
+            // let mut borrowed = a.borrow_mut();
             analogs.insert(
-                borrowed.name(),
+                a.name(),
                 google::protobuf::Value {
                     kind: Some(google::protobuf::value::Kind::StructValue(
                         google::protobuf::Struct {
@@ -292,7 +292,7 @@ impl Status for FakeBoard {
                                 "value".to_string(),
                                 google::protobuf::Value {
                                     kind: Some(google::protobuf::value::Kind::NumberValue(
-                                        borrowed.read().unwrap_or(0).into(),
+                                        a.read().unwrap_or(0).into(),
                                     )),
                                 },
                             )]),
@@ -319,7 +319,7 @@ impl<A> Board for Arc<Mutex<A>>
 where
     A: ?Sized + Board,
 {
-    fn get_board_status(&self) -> anyhow::Result<common::v1::BoardStatus> {
+    fn get_board_status(&mut self) -> anyhow::Result<common::v1::BoardStatus> {
         self.lock().unwrap().get_board_status()
     }
 
@@ -334,7 +334,7 @@ where
     fn get_analog_reader_by_name(
         &self,
         name: String,
-    ) -> anyhow::Result<Rc<RefCell<dyn AnalogReader<u16, Error = anyhow::Error>>>> {
+    ) -> anyhow::Result<Arc<Mutex<dyn AnalogReader<u16, Error = anyhow::Error> + Send>>> {
         self.lock().unwrap().get_analog_reader_by_name(name)
     }
 

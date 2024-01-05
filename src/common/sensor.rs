@@ -60,10 +60,10 @@ pub fn get_sensor_readings_data(sensor: &mut dyn Readings) -> anyhow::Result<Sen
 
 pub trait Sensor: Readings + Status + DoCommand {}
 
-pub type SensorType = Arc<Mutex<dyn Sensor>>;
+pub type SensorType = Arc<Mutex<dyn Sensor + Send>>;
 
 pub trait SensorT<T>: Sensor {
-    fn get_readings(&self) -> anyhow::Result<TypedReadingsResult<T>>;
+    fn get_readings(&mut self) -> anyhow::Result<TypedReadingsResult<T>>;
 }
 
 // A local wrapper type we can use to specialize `From` for `google::protobuf::Value``
@@ -117,7 +117,7 @@ impl Readings for FakeSensor {
 }
 
 impl SensorT<f64> for FakeSensor {
-    fn get_readings(&self) -> anyhow::Result<TypedReadingsResult<f64>> {
+    fn get_readings(&mut self) -> anyhow::Result<TypedReadingsResult<f64>> {
         let mut x = HashMap::new();
         x.insert("fake_sensor".to_string(), self.fake_reading);
         Ok(x)
@@ -147,7 +147,7 @@ where
 }
 
 impl Status for FakeSensor {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
             fields: HashMap::new(),
         }))

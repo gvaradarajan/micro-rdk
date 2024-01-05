@@ -183,7 +183,7 @@ where
     M: Motor,
     Enc: Encoder,
 {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         let pos = self
             .enc
@@ -318,7 +318,7 @@ impl<B> Status for PwmABMotor<B>
 where
     B: Board,
 {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         let pos = 0.0;
         hm.insert(
@@ -435,7 +435,7 @@ impl<B> Status for PwmDirectionMotor<B>
 where
     B: Board,
 {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         let pos = 0.0;
         hm.insert(
@@ -573,7 +573,7 @@ impl<B> Status for AbMotor<B>
 where
     B: Board,
 {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         let pos = 0.0;
         hm.insert(

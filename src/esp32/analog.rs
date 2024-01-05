@@ -1,13 +1,15 @@
 #![allow(dead_code)]
 use crate::common::analog::AnalogReader;
-use core::cell::RefCell;
+// use core::cell::RefCell;
 use esp_idf_hal::adc::{AdcChannelDriver, AdcDriver};
 use esp_idf_hal::gpio::ADCPin;
-use std::rc::Rc;
+// use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+// use std::borrow::BorrowMut;
 
 pub struct Esp32AnalogReader<'a, const A: u32, T: ADCPin> {
     channel: AdcChannelDriver<'a, A, T>,
-    driver: Rc<RefCell<AdcDriver<'a, T::Adc>>>,
+    driver: Arc<Mutex<AdcDriver<'a, T::Adc>>>,
     name: String,
 }
 
@@ -15,7 +17,7 @@ impl<'a, const A: u32, T: ADCPin> Esp32AnalogReader<'a, A, T> {
     pub fn new(
         name: String,
         channel: AdcChannelDriver<'a, A, T>,
-        driver: Rc<RefCell<AdcDriver<'a, T::Adc>>>,
+        driver: Arc<Mutex<AdcDriver<'a, T::Adc>>>,
     ) -> Self {
         Self {
             name,
@@ -25,7 +27,8 @@ impl<'a, const A: u32, T: ADCPin> Esp32AnalogReader<'a, A, T> {
     }
     fn inner_read(&mut self) -> anyhow::Result<u16> {
         self.driver
-            .borrow_mut()
+            .lock()
+            .unwrap()
             .read_raw(&mut self.channel)
             .map_err(|e| anyhow::anyhow!(format!("error while reading analog reader {e}")))
     }

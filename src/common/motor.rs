@@ -75,7 +75,7 @@ pub trait Motor: Status + Actuator + DoCommand {
     fn get_properties(&mut self) -> MotorSupportedProperties;
 }
 
-pub type MotorType = Arc<Mutex<dyn Motor>>;
+pub type MotorType = Arc<Mutex<dyn Motor + Send>>;
 
 #[derive(Debug)]
 pub enum MotorPinType {
@@ -250,7 +250,7 @@ impl Motor for FakeMotor {
     }
 }
 impl Status for FakeMotor {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         hm.insert(
             "position".to_string(),
@@ -344,7 +344,7 @@ impl Motor for FakeMotorWithDependency {
 }
 
 impl Status for FakeMotorWithDependency {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let hm = HashMap::new();
         Ok(Some(google::protobuf::Struct { fields: hm }))
     }

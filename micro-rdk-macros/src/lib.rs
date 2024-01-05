@@ -57,7 +57,7 @@
 //! }
 //!
 //! impl Status for MyMovementSensor {
-//!     fn get_status(&self) -> anyhow::Result<Option<micro_rdk::google::protobuf::Struct>> {
+//!     fn get_status(&mut self) -> anyhow::Result<Option<micro_rdk::google::protobuf::Struct>> {
 //!         Ok(Some(micro_rdk::google::protobuf::Struct {
 //!             fields: HashMap::new(),
 //!         }))

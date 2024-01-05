@@ -53,7 +53,7 @@ macro_rules! esp32_print_stack_high_watermark {
         {
             use esp_idf_sys::uxTaskGetStackHighWaterMark;
             log::info!("stack high watermark is {:#X}", unsafe {
-                uxTaskGetStackHighWaterMark(std::ptr::null_mut())
+                unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) }
             });
         }
     };

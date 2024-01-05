@@ -116,7 +116,7 @@ where
     ML: Motor,
     MR: Motor,
 {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
         hm.insert(
             "is_moving".to_string(),

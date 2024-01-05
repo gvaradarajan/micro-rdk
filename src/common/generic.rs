@@ -50,7 +50,7 @@ where
 
 pub trait GenericComponent: DoCommand + Status {}
 
-pub type GenericComponentType = Arc<Mutex<dyn GenericComponent>>;
+pub type GenericComponentType = Arc<Mutex<dyn GenericComponent + Send>>;
 
 impl<L> GenericComponent for Mutex<L> where L: ?Sized + GenericComponent {}
 
@@ -95,7 +95,7 @@ impl DoCommand for FakeGenericComponent {
 }
 
 impl Status for FakeGenericComponent {
-    fn get_status(&self) -> anyhow::Result<Option<Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<Struct>> {
         Ok(Some(Struct {
             fields: HashMap::new(),
         }))

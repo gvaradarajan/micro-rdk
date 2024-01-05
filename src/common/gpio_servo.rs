@@ -216,7 +216,7 @@ impl<B> Status for GpioServo<B>
 where
     B: Board,
 {
-    fn get_status(&self) -> anyhow::Result<Option<crate::google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<crate::google::protobuf::Struct>> {
         Ok(None)
     }
 }

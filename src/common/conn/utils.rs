@@ -125,7 +125,7 @@ impl DtlsBuilder for WebRtcNoOp {
 impl DtlsConnector for WebRtcNoOp {
     type Error = Infallible;
     type Stream = WebRtcNoOp;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Stream, Self::Error>>>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Stream, Self::Error>> + Send>>;
     fn accept(self) -> Self::Future {
         Box::pin(futures_lite::future::pending())
     }

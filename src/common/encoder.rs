@@ -121,7 +121,7 @@ pub trait SingleEncoder: Encoder {
     fn get_direction(&self) -> anyhow::Result<Direction>;
 }
 
-pub(crate) type EncoderType = Arc<Mutex<dyn Encoder>>;
+pub(crate) type EncoderType = Arc<Mutex<dyn Encoder + Send>>;
 
 #[derive(DoCommand)]
 pub struct FakeIncrementalEncoder {
@@ -171,7 +171,7 @@ impl Encoder for FakeIncrementalEncoder {
 }
 
 impl Status for FakeIncrementalEncoder {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
             fields: HashMap::new(),
         }))
@@ -232,7 +232,7 @@ impl Encoder for FakeEncoder {
 }
 
 impl Status for FakeEncoder {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
             fields: HashMap::new(),
         }))

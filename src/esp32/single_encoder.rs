@@ -43,7 +43,7 @@ const MAX_GLITCH_MICROSEC: u16 = 1;
 
 // TODO: Move this type to common once we have a single encoder
 // implementation for another board
-pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder>>;
+pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder + Send>>;
 
 struct PulseStorage {
     acc: Arc<AtomicI32>,
@@ -333,7 +333,7 @@ impl SingleEncoder for Esp32SingleEncoder {
 }
 
 impl Status for Esp32SingleEncoder {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
+    fn get_status(&mut self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
             fields: HashMap::new(),
         }))

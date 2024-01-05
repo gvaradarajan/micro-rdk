@@ -7,6 +7,14 @@ use super::{
 use crate::esp32::exec::Esp32Executor;
 #[cfg(feature = "native")]
 use crate::native::exec::NativeExecutor;
+
+#[cfg(feature = "esp32")]
+use esp_idf_hal::{
+    sys::uxTaskGetStackHighWaterMark,
+    cpu::Core,
+    task::thread::ThreadSpawnConfiguration,
+};
+
 use crate::{
     common::{
         app_client::{AppClient, AppClientBuilder, AppClientConfig, AppClientError, AppSignaling},
@@ -48,11 +56,23 @@ type Executor<'a> = NativeExecutor<'a>;
 #[cfg(feature = "esp32")]
 type Executor<'a> = Esp32Executor<'a>;
 
+
+
 pub trait TlsClientConnector {
     type Stream: AsyncRead + AsyncWrite + Unpin + 'static;
 
     fn connect(&mut self) -> Result<Self::Stream, ServerError>;
 }
+
+impl<A> TlsClientConnector for Arc<Mutex<A>> 
+where
+    A: ?Sized + TlsClientConnector
+{
+    type Stream = A::Stream;
+    fn connect(&mut self) -> Result<Self::Stream, ServerError> {
+        self.lock().unwrap().connect()
+    }
+} 
 
 pub struct RobotCloudConfig {
     local_fqdn: String,
@@ -261,62 +281,6 @@ where
     }
 }
 
-struct TaskIndicesToTimeIntervals {
-    original_intervals: Vec<u64>,
-    remaining_times: Vec<u64>,
-}
-
-impl TaskIndicesToTimeIntervals {
-    pub fn new(original_intervals: Vec<u64>) -> anyhow::Result<Self> {
-        if original_intervals.is_empty() {
-            anyhow::bail!("WaitTimeForIntervals must take at least one time interval")
-        }
-        let remaining_times = original_intervals.to_vec();
-        Ok(Self {
-            original_intervals,
-            remaining_times,
-        })
-    }
-
-    pub fn original_intervals(&self) -> Vec<u64> {
-        self.original_intervals.to_vec()
-    }
-
-    // pub fn advance_wait_time(&mut self, milliseconds: u64) -> Vec<usize> {
-    //     let mut task_indices = vec![];
-    //     for (i, time_remaining) in self.remaining_times.iter_mut().enumerate() {
-    //         if *time_remaining > milliseconds {
-    //             *time_remaining -= milliseconds;
-    //         } else {
-    //             let missed_task_instances = (milliseconds / *time_remaining) as usize;
-    //             *time_remaining = *self.original_intervals.get(i).unwrap();
-    //             for _ in (0..missed_task_instances) {
-    //                 task_indices.push(i)
-    //             }
-    //         }
-    //     }
-    //     task_indices
-    // }
-}
-
-impl Iterator for TaskIndicesToTimeIntervals {
-    type Item = (Vec<usize>, u64);
-    fn next(&mut self) -> Option<Self::Item> {
-        let min = self.remaining_times.iter().min().unwrap();
-        let wait_time = *min;
-        let mut min_indices = vec![];
-        for (i, time_remaining) in self.remaining_times.iter_mut().enumerate() {
-            if *time_remaining != wait_time {
-                *time_remaining -= wait_time;
-            } else {
-                *time_remaining = *self.original_intervals.get(i).unwrap();
-                min_indices.push(i)
-            }
-        }
-        Some((min_indices, wait_time))
-    }
-}
-
 pub struct ViamServer<'a, C, T, CC, D, L> {
     http_listener: HttpListener<L, T>,
     webrtc_config: Option<Box<WebRtcConfiguration<'a, D, CC>>>,
@@ -357,21 +321,80 @@ where
         let cloned_exec = self.exec.clone();
         block_on(cloned_exec.run(Box::pin(self.serve(robot))));
     }
+
+    // #[cfg(feature = "esp32")]
+    // fn spawn_data_task(&mut self, robot: Arc<Mutex<LocalRobot>>) -> std::sync::mpsc::Receiver<crate::proto::app::data_sync::v1::DataCaptureUploadRequest> {
+    //     ThreadSpawnConfiguration {
+    //         name: Some(b"data_task\0"),
+    //         stack_size: 12288,
+    //         priority: 20,
+    //         pin_to_core: Some(Core::Core1),
+    //         ..Default::default()
+    //     }
+    //     .set()
+    //     .unwrap();
+
+    //     let cloned_robot = robot.clone();
+    //     let _ = std::thread::Builder::new().stack_size(12288).spawn(move || {
+    //         println!("start stack size: {:?}", unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) });
+            
+    //         let task_intervals = cloned_robot.lock().unwrap().get_collector_time_intervals_ms();
+    //         if !task_intervals.is_empty() {
+    //             if let Some(client) = self.app_client.as_mut() {
+    //                 let part_id = client.robot_part_id();
+    //                 let mut tasks = TaskIndicesToTimeIntervals::new(task_intervals).unwrap();
+    //                 let original_intervals = tasks.original_intervals();
+    //                 loop {
+    //                     let (task_indices, wait_time) = tasks.next().unwrap();
+    //                     std::thread::sleep(std::time::Duration::from_millis(wait_time));
+    //                     for task_index in task_indices.iter() {
+    //                         let time_interval_key = original_intervals.get(*task_index).unwrap();
+    //                         // println!("remaining stack size before readings: {:?}", unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) });
+    //                         if let Ok(sensor_readings) = cloned_robot
+    //                             .lock()
+    //                             .as_mut()
+    //                             .unwrap()
+    //                             .collect_readings(
+    //                                 &part_id,
+    //                                 time_interval_key,
+    //                             )
+    //                         {
+                            
+        
+    //                             if let Err(err) = client.push_sensor_data(sensor_readings)
+    //                             {
+    //                                 println!("failed to push: {:?}", err);
+    //                                 log::error!("error while reporting sensor data: {}", err);
+    //                             } else {
+    //                                 println!("pushed maybe?")
+    //                             }
+    //                             // println!("readings collected");
+    //                         }
+    //                     }
+    //                     // std::thread::sleep(std::time::Duration::from_millis(2000));
+    //                     // println!("in core 1: part: {:?}", robot_part_id);
+    //                 }
+    //             }
+    //         }
+    //         // loop {
+    //         //     std::thread::sleep(std::time::Duration::from_millis(2000));
+    //         //     println!("in core 1");
+    //         // }
+    //     });
+    //     ThreadSpawnConfiguration::default().set().unwrap();
+
+    // }
+
     async fn serve(&mut self, robot: Arc<Mutex<LocalRobot>>) {
+
+        // #[cfg(feature = "esp32")]
+        // let data_channel = self.spawn_data_task(robot.clone());
+
         let cloned_robot = robot.clone();
         let mut current_prio = None;
-        let mut task_intervals = robot.lock().unwrap().get_collector_time_intervals_ms();
-        // let min_interval = std::cmp::min(task_intervals.iter().min().copied().unwrap_or_default(), 5000);
-        let data_collection_active = !task_intervals.is_empty();
-        let connection_task_index = task_intervals.len();
-        task_intervals.push(300);
-        let mut tasks = TaskIndicesToTimeIntervals::new(task_intervals).unwrap();
-        let original_intervals = tasks.original_intervals();
-        // println!("intervals: {:?}", original_intervals);
 
         loop {
-            let (task_indices, wait_time) = tasks.next().unwrap();
-            let _ = smol::Timer::after(std::time::Duration::from_millis(wait_time)).await;
+            let _ = smol::Timer::after(std::time::Duration::from_millis(300)).await;
 
             if self.app_client.is_none() {
                 let conn = self.app_connector.connect().unwrap();
@@ -379,145 +402,100 @@ where
                 let grpc_client = Box::new(
                     GrpcClient::new(conn, cloned_exec, "https://app.viam.com:443").unwrap(),
                 );
-                let app_client =
-                    AppClientBuilder::new(grpc_client, self.app_config.clone())
-                        .build()
-                        .unwrap();
+                let app_client = AppClientBuilder::new(grpc_client, self.app_config.clone())
+                    .build()
+                    .unwrap();
                 let _ = self.app_client.insert(app_client);
             }
 
-            for task_index in task_indices.iter() {
-                if task_index == &connection_task_index {
-                    let sig = if let Some(webrtc_config) = self.webrtc_config.as_ref() {
-                        let ip = self.app_config.get_ip();
-                        let signaling = self.app_client.as_mut().unwrap().connect_signaling();
-                        futures::future::Either::Left(WebRTCSignalingAnswerer {
-                            webrtc_config: Some(webrtc_config),
-                            future: signaling,
-                            ip,
-                        })
-                    } else {
-                        futures::future::Either::Right(WebRTCSignalingAnswerer::<
-                            '_,
-                            '_,
-                            CC,
-                            D,
-                            futures_lite::future::Pending<Result<AppSignaling, AppClientError>>,
-                        >::default())
-                    };
+            let sig = if let Some(webrtc_config) = self.webrtc_config.as_ref() {
+                let ip = self.app_config.get_ip();
+                let signaling = self.app_client.as_mut().unwrap().connect_signaling();
+                futures::future::Either::Left(WebRTCSignalingAnswerer {
+                    webrtc_config: Some(webrtc_config),
+                    future: signaling,
+                    ip,
+                })
+            } else {
+                futures::future::Either::Right(WebRTCSignalingAnswerer::<
+                    '_,
+                    '_,
+                    CC,
+                    D,
+                    futures_lite::future::Pending<Result<AppSignaling, AppClientError>>,
+                >::default())
+            };
 
-                    let listener = self.http_listener.next_conn();
+            let listener = self.http_listener.next_conn();
 
-                    log::info!("waiting for connection");
+            log::info!("waiting for connection");
 
-                    let connection = futures_lite::future::or(
-                        async move {
-                            let p = if data_collection_active {
-                                match listener.timeout(std::time::Duration::from_millis(5000)).await {
-                                    Some(res) => res.map_err(|e| ServerError::Other(e.into())),
-                                    None => Err(ServerError::ServerConnectionTimeout)
-                                }
-                            } else {
-                                listener.await.map_err(|e| ServerError::Other(e.into()))
-                            };
-                            p.map(IncomingConnection::Http2Connection)
-                        },
-                        async {
-                            let mut api = if data_collection_active {
-                                match sig.timeout(std::time::Duration::from_millis(5000)).await {
-                                    Some(res) => res,
-                                    None => Err(ServerError::ServerConnectionTimeout)
-                                }
-                            } else {
-                                sig.await
-                            }?;
-                            // let mut api = sig.await?;
+            let connection = futures_lite::future::or(
+                async move {
+                    let p = listener.await;
+                    p.map(IncomingConnection::Http2Connection)
+                        .map_err(|e| ServerError::Other(e.into()))
+                },
+                async {
+                    let mut api = sig.await?;
 
-                            let prio = self
-                                .webtrc_conn
-                                .as_ref()
-                                .and_then(|f| (!f.is_finished()).then_some(&current_prio))
-                                .unwrap_or(&None);
+                    let prio = self
+                        .webtrc_conn
+                        .as_ref()
+                        .and_then(|f| (!f.is_finished()).then_some(&current_prio))
+                        .unwrap_or(&None);
 
-                            let sdp = api
-                                .answer(prio)
-                                .await
-                                .map_err(|e| ServerError::Other(Box::new(e)))?;
+                    let sdp = api
+                        .answer(prio)
+                        .await
+                        .map_err(|e| ServerError::Other(Box::new(e)))?;
 
-                            // When the current priority is lower than the priority of the incoming connection then
-                            // we cancel and close the current webrtc connection (if any)
-                            if let Some(task) = self.webtrc_conn.take() {
-                                if !task.is_finished() {
-                                    let _ = task.cancel().await;
-                                }
-                            }
-
-                            let _ = current_prio.insert(sdp.1);
-
-                            Ok(IncomingConnection::WebRtcConnection(WebRTCConnection {
-                                webrtc_api: api,
-                                sdp: sdp.0,
-                                server: None,
-                                robot: cloned_robot.clone(),
-                            }))
-                        },
-                    );
-                    let connection = connection.await;
-
-                    if let Err(err) = connection {
-                        if let ServerError::ServerAppClientError(
-                            AppClientError::AppGrpcClientError(GrpcClientError::ProtoError(err)),
-                        ) = err
-                        {
-                            // Google load balancer may terminate a connection after some time
-                            // it will do so by sending a GOAWAY frame
-                            if err.is_go_away() || err.is_io() || err.is_library() {
-                                let _ = self.app_client.take();
-                            }
+                    // When the current priority is lower than the priority of the incoming connection then
+                    // we cancel and close the current webrtc connection (if any)
+                    if let Some(task) = self.webtrc_conn.take() {
+                        if !task.is_finished() {
+                            let _ = task.cancel().await;
                         }
-                        continue;
                     }
-                    if let Err(e) = match connection.unwrap() {
-                        IncomingConnection::Http2Connection(c) => {
-                            self.serve_http2(c, robot.clone()).await
-                        }
 
-                        IncomingConnection::WebRtcConnection(mut c) => {
-                            match c.open_data_channel().await {
-                                Err(e) => Err(e),
-                                Ok(_) => {
-                                    let t = self.exec.spawn(async move { c.run().await });
-                                    let _task = self.webtrc_conn.insert(t);
-                                    Ok(())
-                                }
-                            }
-                        }
-                    } {
-                        log::error!("error while serving {}", e);
-                    }
-                } else {
-                    let time_interval_key = original_intervals.get(*task_index).unwrap();
-                    if let Ok(sensor_readings) = cloned_robot
-                        .clone()
-                        .lock()
-                        .as_mut()
-                        .unwrap()
-                        .collect_readings(
-                            &self.app_client.as_ref().unwrap().robot_part_id(),
-                            time_interval_key,
-                        )
-                    {
-                        if let Err(err) = self
-                            .app_client
-                            .as_mut()
-                            .unwrap()
-                            .push_sensor_data(sensor_readings)
-                        {
-                            println!("failed to push: {:?}", err);
-                            log::error!("error while reporting sensor data: {}", err);
-                        }
+                    let _ = current_prio.insert(sdp.1);
+
+                    Ok(IncomingConnection::WebRtcConnection(WebRTCConnection {
+                        webrtc_api: api,
+                        sdp: sdp.0,
+                        server: None,
+                        robot: cloned_robot.clone(),
+                    }))
+                },
+            );
+            let connection = connection.await;
+
+            if let Err(err) = connection {
+                if let ServerError::ServerAppClientError(AppClientError::AppGrpcClientError(
+                    GrpcClientError::ProtoError(err),
+                )) = err
+                {
+                    // Google load balancer may terminate a connection after some time
+                    // it will do so by sending a GOAWAY frame
+                    if err.is_go_away() || err.is_io() || err.is_library() {
+                        let _ = self.app_client.take();
                     }
                 }
+                continue;
+            }
+            if let Err(e) = match connection.unwrap() {
+                IncomingConnection::Http2Connection(c) => self.serve_http2(c, robot.clone()).await,
+
+                IncomingConnection::WebRtcConnection(mut c) => match c.open_data_channel().await {
+                    Err(e) => Err(e),
+                    Ok(_) => {
+                        let t = self.exec.spawn(async move { c.run().await });
+                        let _task = self.webtrc_conn.insert(t);
+                        Ok(())
+                    }
+                },
+            } {
+                log::error!("error while serving {}", e);
             }
         }
     }
@@ -664,3 +642,59 @@ where
         )))
     }
 }
+
+// struct TaskIndicesToTimeIntervals {
+//     original_intervals: Vec<u64>,
+//     remaining_times: Vec<u64>,
+// }
+
+// impl TaskIndicesToTimeIntervals {
+//     pub fn new(original_intervals: Vec<u64>) -> anyhow::Result<Self> {
+//         if original_intervals.is_empty() {
+//             anyhow::bail!("WaitTimeForIntervals must take at least one time interval")
+//         }
+//         let remaining_times = original_intervals.to_vec();
+//         Ok(Self {
+//             original_intervals,
+//             remaining_times,
+//         })
+//     }
+
+//     pub fn original_intervals(&self) -> Vec<u64> {
+//         self.original_intervals.to_vec()
+//     }
+
+//     // pub fn advance_wait_time(&mut self, milliseconds: u64) -> Vec<usize> {
+//     //     let mut task_indices = vec![];
+//     //     for (i, time_remaining) in self.remaining_times.iter_mut().enumerate() {
+//     //         if *time_remaining > milliseconds {
+//     //             *time_remaining -= milliseconds;
+//     //         } else {
+//     //             let missed_task_instances = (milliseconds / *time_remaining) as usize;
+//     //             *time_remaining = *self.original_intervals.get(i).unwrap();
+//     //             for _ in (0..missed_task_instances) {
+//     //                 task_indices.push(i)
+//     //             }
+//     //         }
+//     //     }
+//     //     task_indices
+//     // }
+// }
+
+// impl Iterator for TaskIndicesToTimeIntervals {
+//     type Item = (Vec<usize>, u64);
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let min = self.remaining_times.iter().min().unwrap();
+//         let wait_time = *min;
+//         let mut min_indices = vec![];
+//         for (i, time_remaining) in self.remaining_times.iter_mut().enumerate() {
+//             if *time_remaining != wait_time {
+//                 *time_remaining -= wait_time;
+//             } else {
+//                 *time_remaining = *self.original_intervals.get(i).unwrap();
+//                 min_indices.push(i)
+//             }
+//         }
+//         Some((min_indices, wait_time))
+//     }
+// }
