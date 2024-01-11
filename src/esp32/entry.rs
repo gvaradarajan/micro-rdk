@@ -15,6 +15,8 @@ use crate::common::{
     robot::LocalRobot,
 };
 
+use esp_idf_sys::esp_get_free_heap_size;
+
 use crate::common::conn::server::TlsClientConnector;
 
 use super::{
@@ -99,7 +101,7 @@ pub fn serve_web(
     let cloned_app_cfg = app_config.clone();
     let exec = Esp32Executor::new();
     // let cloned_exec = exec.clone();
-    let client_connector = Arc::new(Mutex::new(Esp32Tls::new_client()));
+    let mut client_connector = Esp32Tls::new_client();
     
 
     let (mut srv, robot, part_id) = {
@@ -116,7 +118,8 @@ pub fn serve_web(
             // let builder = AppClientBuilder::new(grpc_client, app_config.clone());
 
             // let mut client = builder.build().unwrap();
-            let conn = client_connector.lock().unwrap().open_ssl_context(None).unwrap();
+            // let client_connector = Esp32Tls::new_client();
+            let conn = client_connector.open_ssl_context(None).unwrap();
             let conn = Esp32Stream::TLSStream(Box::new(conn));
             let grpc_client =
                 Box::new(GrpcClient::new(conn, cloned_exec, "https://app.viam.com:443").unwrap());
@@ -203,7 +206,7 @@ pub fn serve_web(
 
         (
             Box::new(
-                ViamServerBuilder::new(mdns, cloned_exec, client_connector.clone(), app_config)
+                ViamServerBuilder::new(mdns, cloned_exec, client_connector, app_config)
                     .with_webrtc(webrtc)
                     .with_http2(tls_listener, 12346)
                     .build(&cfg_response)
@@ -257,20 +260,21 @@ pub fn serve_web(
     let cloned_robot = robot.clone();
     // // let cloned_exec = exec.clone();
     let _ = std::thread::Builder::new().stack_size(12288).spawn(move || {
+        let available_heap = unsafe { esp_get_free_heap_size() };
+        println!("available heap size: {:?}", available_heap);
         println!("start stack size: {:?}", unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) });
         let exec = Esp32Executor::new();
-
-        // let conn = client_connector.lock().unwrap().open_ssl_context(None).unwrap();
-        // let conn = Esp32Stream::TLSStream(Box::new(conn));
-        // let conn = client_connector.lock().unwrap().connect().unwrap();
-        // println!("remaining stack size before grpc: {:?}", unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) });
-        // let grpc_client =
-        //     Arc::new(Box::new(GrpcClient::new(conn, exec, "https://app.viam.com:443").unwrap()));
-        // let builder = AppClientBuilder::new(grpc_client, cloned_app_cfg);
-        // let mut client = builder.build().unwrap();
+        let mut client_connector = Esp32Tls::new_client();
+        let conn = client_connector.open_ssl_context(None).unwrap();
+        let conn = Esp32Stream::TLSStream(Box::new(conn));
+        println!("remaining stack size before grpc: {:?}", unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) });
+        let grpc_client = Box::new(GrpcClient::new(conn, exec, "https://app.viam.com:443").unwrap());
+        let builder = AppClientBuilder::new(grpc_client, cloned_app_cfg);
+        let mut client = builder.build().unwrap();
 
         // let robot_part_id = client.robot_part_id();
         let task_intervals = cloned_robot.lock().unwrap().get_collector_time_intervals_ms();
+        let mut client_connector = Esp32Tls::new_client();
         if !task_intervals.is_empty() {
             let mut tasks = TaskIndicesToTimeIntervals::new(task_intervals).unwrap();
             let original_intervals = tasks.original_intervals();
@@ -289,14 +293,15 @@ pub fn serve_web(
                             time_interval_key,
                         )
                     {
-                        let cloned_exec = exec.clone();
-                        let cloned_app_cfg = cloned_app_cfg.clone();
-                        let conn = client_connector.lock().unwrap().connect().unwrap();
-                        // // println!("remaining stack size before grpc: {:?}", unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) });
-                        let grpc_client =
-                            Box::new(GrpcClient::new(conn, cloned_exec, "https://app.viam.com:443").unwrap());
-                        let builder = AppClientBuilder::new(grpc_client, cloned_app_cfg);
-                        let mut client = builder.build().unwrap();
+                        // let cloned_exec = exec.clone();
+                        // let cloned_app_cfg = cloned_app_cfg.clone();
+                        // let conn = client_connector.open_ssl_context(None).unwrap();
+                        // let conn = Esp32Stream::TLSStream(Box::new(conn));
+                        // // // println!("remaining stack size before grpc: {:?}", unsafe { uxTaskGetStackHighWaterMark(std::ptr::null_mut()) });
+                        // let grpc_client =
+                        //     Box::new(GrpcClient::new(conn, cloned_exec, "https://app.viam.com:443").unwrap());
+                        // let builder = AppClientBuilder::new(grpc_client, cloned_app_cfg);
+                        // let mut client = builder.build().unwrap();
 
                         if let Err(err) = client.push_sensor_data(sensor_readings)
                         {
