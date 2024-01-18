@@ -259,7 +259,7 @@ pub struct WebRtcApi<S, D, E> {
     signaling: Option<WebRtcSignalingChannel>,
     uuid: Option<String>,
     transport: WebRtcTransport,
-    certificate: Rc<S>,
+    certificate: Arc<S>,
     local_creds: ICECredentials,
     remote_creds: Option<ICECredentials>,
     local_ip: Ipv4Addr,
@@ -285,7 +285,7 @@ where
         executor: E,
         tx_half: GrpcMessageSender<AnswerResponse>,
         rx_half: GrpcMessageStream<AnswerRequest>,
-        certificate: Rc<C>,
+        certificate: Arc<C>,
         local_ip: Ipv4Addr,
         dtls: D,
     ) -> Self {

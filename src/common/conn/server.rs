@@ -533,7 +533,7 @@ pub enum IncomingConnection<L, U> {
 #[derive(Clone)]
 pub struct WebRtcConfiguration<'a, D, CC> {
     pub dtls: D,
-    pub cert: Rc<CC>,
+    pub cert: Arc<CC>,
     pub exec: Executor<'a>,
 }
 
@@ -542,7 +542,7 @@ where
     D: DtlsBuilder,
     CC: Certificate,
 {
-    pub fn new(cert: Rc<CC>, dtls: D, exec: Executor<'a>) -> Self {
+    pub fn new(cert: Arc<CC>, dtls: D, exec: Executor<'a>) -> Self {
         Self { dtls, cert, exec }
     }
 }

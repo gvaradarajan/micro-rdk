@@ -5,6 +5,7 @@ use std::{
     marker::PhantomData,
     pin::Pin,
     rc::Rc,
+    sync::Arc,
     task::{Context, Poll},
     time::{Duration, Instant},
 };
@@ -211,7 +212,7 @@ impl Drop for SSLContext {
 }
 
 impl SSLContext {
-    fn init<S: Certificate>(&mut self, certificate: Rc<S>) -> Result<(), SSLError> {
+    fn init<S: Certificate>(&mut self, certificate: Arc<S>) -> Result<(), SSLError> {
         log::debug!("initializing DTLS context");
         unsafe {
             mbedtls_ssl_init(self.ssl_ctx.as_mut());
@@ -223,6 +224,8 @@ impl SSLContext {
         }
         let ret = unsafe {
             //TODO(RSDK-3058) we can avoid an allocation if we use the nocpy version
+            println!("{:?}", self.x509);
+            println!("{:?}", certificate.get_der_certificate());
             mbedtls_x509_crt_parse_der(
                 self.x509.as_mut(),
                 certificate.get_der_certificate().as_ptr(),
@@ -346,7 +349,7 @@ impl SSLContext {
 pub struct Esp32Dtls<C> {
     context: Box<SSLContext>,
     transport: Option<IoPktChannel>,
-    certificate: Rc<C>,
+    certificate: Arc<C>,
 }
 
 #[derive(Error, Debug)]
@@ -382,11 +385,11 @@ impl From<i32> for SSLError {
 }
 
 pub struct Esp32DtlsBuilder<C: Certificate> {
-    cert: Rc<C>,
+    cert: Arc<C>,
 }
 
 impl<C: Certificate> Esp32DtlsBuilder<C> {
-    pub fn new(cert: Rc<C>) -> Self {
+    pub fn new(cert: Arc<C>) -> Self {
         Self { cert }
     }
 }
@@ -402,7 +405,7 @@ impl<C> Esp32Dtls<C>
 where
     C: Certificate,
 {
-    pub fn new(certificate: Rc<C>) -> Result<Self, SSLError> {
+    pub fn new(certificate: Arc<C>) -> Result<Self, SSLError> {
         let context = Box::<SSLContext>::default();
         Ok(Self {
             context,

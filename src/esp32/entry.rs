@@ -176,7 +176,8 @@ pub fn serve_web(
         let tls = Box::new(Esp32Tls::new_server(&tls_server_config));
         let tls_listener = Esp32Listener::new(address.into(), Some(tls)).unwrap();
 
-        let webrtc_certificate = Rc::new(webrtc_certificate);
+        // let webrtc_certificate = Rc::new(webrtc_certificate);
+        let webrtc_certificate = Arc::new(webrtc_certificate);
         let dtls = Esp32DtlsBuilder::new(webrtc_certificate.clone());
 
         let cloned_exec = exec.clone();
@@ -259,6 +260,7 @@ pub fn serve_web(
     // }
     let cloned_robot = robot.clone();
     // // let cloned_exec = exec.clone();
+    let mut buffer = Vec::with_capacity(1000);
     let _ = std::thread::Builder::new().stack_size(12288).spawn(move || {
         let available_heap = unsafe { esp_get_free_heap_size() };
         println!("available heap size: {:?}", available_heap);
@@ -274,7 +276,7 @@ pub fn serve_web(
 
         // let robot_part_id = client.robot_part_id();
         let task_intervals = cloned_robot.lock().unwrap().get_collector_time_intervals_ms();
-        let mut client_connector = Esp32Tls::new_client();
+        // let mut client_connector = Esp32Tls::new_client();
         if !task_intervals.is_empty() {
             let mut tasks = TaskIndicesToTimeIntervals::new(task_intervals).unwrap();
             let original_intervals = tasks.original_intervals();
@@ -302,14 +304,17 @@ pub fn serve_web(
                         //     Box::new(GrpcClient::new(conn, cloned_exec, "https://app.viam.com:443").unwrap());
                         // let builder = AppClientBuilder::new(grpc_client, cloned_app_cfg);
                         // let mut client = builder.build().unwrap();
-
-                        if let Err(err) = client.push_sensor_data(sensor_readings)
-                        {
-                            println!("failed to push: {:?}", err);
-                            log::error!("error while reporting sensor data: {}", err);
-                        } else {
-                            println!("pushed maybe?")
+                        if buffer.capacity() < sensor_readings.len() {
+                            if let Err(err) = client.push_sensor_data(buffer) {
+                                println!("failed to push: {:?}", err);
+                                log::error!("error while reporting sensor data: {}", err);
+                            } else {
+                                println!("pushed maybe?");
+                            }
+                            buffer = Vec::with_capacity(1000);
                         }
+                        buffer.extend_from_slice(&sensor_readings);
+                        
                         // println!("readings collected");
                     }
                 }
