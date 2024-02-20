@@ -20,8 +20,10 @@ socket2 = { git = "https://github.com/viamrobotics/socket2.git" }
 async-io = {git = "https://github.com/viamrobotics/async-io.git"}
 
 [features]
-default = []
+default = ["esp-idf-svc/std"]
 camera = []
+binstart = ["esp-idf-svc/binstart"]
+libstart = ["esp-idf-svc/libstart"]
 esp32 = ["dep:esp-idf-svc", "dep:embedded-svc", "dep:embedded-hal"]
 native = ["dep:rustls", "dep:webpki-roots", "dep:rustls-pemfile", "dep:mdns-sd", "dep:local-ip-address", "dep:openssl", "dep:rcgen", "dep:async-std-openssl"]
 
@@ -37,7 +39,7 @@ bytes = "1.2.1"
 either = "1.8.0"
 embedded-hal = { version = "0.2.7", features = ["unproven"], optional = true }
 embedded-svc = { version = "0.26.4", optional = true }
-esp-idf-svc = { version = "= 0.47.3",  optional = true }
+esp-idf-svc = { version = "= 0.47.3",  optional = true, default-features = false }
 futures = "0.3.28"
 futures-lite = "1.12.0"
 h2 = "0.3.22"
