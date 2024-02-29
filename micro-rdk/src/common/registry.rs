@@ -93,30 +93,30 @@ pub struct Dependency(pub ResourceKey, pub Resource);
 /// Fn that returns a `BoardType`, `Arc<Mutex<dyn Board>>`
 type BoardConstructor = dyn Fn(ConfigType) -> Result<BoardType, BoardError>;
 
-/// Fn that returns a `MotorType`, `Arc<Mutex<dyn Motor>>`
+/// Fn that returns a `MotorType`, `Arc<Mutex<dyn Motor + Send>>`
 type MotorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<MotorType>;
 
-/// Fn that returns a `SensorType`, `Arc<Mutex<dyn Sensor>>`
+/// Fn that returns a `SensorType`, `Arc<Mutex<dyn Sensor + Send>>`
 type SensorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<SensorType>;
 
-/// Fn that returns a `MovementSensorType`, `Arc<Mutex<dyn MovementSensor>>`
+/// Fn that returns a `MovementSensorType`, `Arc<Mutex<dyn MovementSensor + Send>>`
 type MovementSensorConstructor =
     dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<MovementSensorType>;
 
-/// Fn that returns an `EncoderType`, `Arc<Mutex<dyn Encoder>>`
+/// Fn that returns an `EncoderType`, `Arc<Mutex<dyn Encoder + Send>>`
 type EncoderConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<EncoderType>;
 
-/// Fn that returns an `BaseType`, `Arc<Mutex<dyn Base>>`
+/// Fn that returns an `BaseType`, `Arc<Mutex<dyn Base + Send>>`
 type BaseConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<BaseType>;
 
-/// Fn that returns a `ServoType`, `Arc<Mutex<dyn Servo>>`
+/// Fn that returns a `ServoType`, `Arc<Mutex<dyn Servo + Send>>`
 type ServoConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<ServoType>;
 
-/// Fn that returns a `PowerSensorType`, `Arc<Mutex<dyn PowerSensor>>`
+/// Fn that returns a `PowerSensorType`, `Arc<Mutex<dyn PowerSensor + Send>>`
 type PowerSensorConstructor =
     dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<PowerSensorType>;
 
-/// Fn that returns a `GenericComponentType`, `Arc<Mutex<dyn GenericComponentType>>`
+/// Fn that returns a `GenericComponentType`, `Arc<Mutex<dyn GenericComponent + Send>>`
 type GenericComponentConstructor =
     dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<GenericComponentType>;
 

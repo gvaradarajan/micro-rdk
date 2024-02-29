@@ -1,8 +1,14 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
-    google::protobuf::{value::Kind, Value},
-    proto::component,
+    google::protobuf::{value::Kind, Struct, Value, Timestamp},
+    proto::{
+        app::data_sync::v1::{sensor_data, SensorData, SensorMetadata},
+        component,
+    },
 };
 
 use super::{
@@ -17,6 +23,15 @@ pub static COMPONENT_NAME: &str = "power_sensor";
 pub enum PowerSupplyType {
     AC,
     DC,
+}
+
+impl PowerSupplyType {
+    pub fn is_ac(&self) -> bool {
+        match self {
+            Self::AC => true,
+            Self::DC => false,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -43,6 +58,43 @@ impl From<Voltage> for component::power_sensor::v1::GetVoltageResponse {
     }
 }
 
+impl From<Voltage> for SensorData {
+    fn from(value: Voltage) -> Self {
+        let current_date = chrono::offset::Local::now().fixed_offset();
+        SensorData {
+            metadata: Some(SensorMetadata {
+                time_received: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+                time_requested: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+            }),
+            data: Some(sensor_data::Data::Struct(Struct {
+                fields: HashMap::from([(
+                    "voltage".to_string(),
+                    Value {
+                        kind: Some(Kind::StructValue(Struct {
+                            fields: HashMap::from([
+                                (
+                                    "is_ac".to_string(),
+                                    Value {
+                                        kind: Some(Kind::BoolValue(
+                                            value.power_supply_type.is_ac(),
+                                        )),
+                                    },
+                                ),
+                                (
+                                    "volts".to_string(),
+                                    Value {
+                                        kind: Some(Kind::NumberValue(value.volts)),
+                                    },
+                                ),
+                            ]),
+                        })),
+                    },
+                )]),
+            })),
+        }
+    }
+}
+
 impl From<Current> for component::power_sensor::v1::GetCurrentResponse {
     fn from(value: Current) -> Self {
         Self {
@@ -51,6 +103,43 @@ impl From<Current> for component::power_sensor::v1::GetCurrentResponse {
                 PowerSupplyType::AC => true,
                 PowerSupplyType::DC => false,
             },
+        }
+    }
+}
+
+impl From<Current> for SensorData {
+    fn from(value: Current) -> Self {
+        let current_date = chrono::offset::Local::now().fixed_offset();
+        SensorData {
+            metadata: Some(SensorMetadata {
+                time_received: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+                time_requested: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+            }),
+            data: Some(sensor_data::Data::Struct(Struct {
+                fields: HashMap::from([(
+                    "current".to_string(),
+                    Value {
+                        kind: Some(Kind::StructValue(Struct {
+                            fields: HashMap::from([
+                                (
+                                    "is_ac".to_string(),
+                                    Value {
+                                        kind: Some(Kind::BoolValue(
+                                            value.power_supply_type.is_ac(),
+                                        )),
+                                    },
+                                ),
+                                (
+                                    "amperes".to_string(),
+                                    Value {
+                                        kind: Some(Kind::NumberValue(value.amperes)),
+                                    },
+                                ),
+                            ]),
+                        })),
+                    },
+                )]),
+            })),
         }
     }
 }
@@ -64,7 +153,7 @@ pub trait PowerSensor: Status + Readings + DoCommand {
     fn get_power(&mut self) -> anyhow::Result<f64>;
 }
 
-pub type PowerSensorType = Arc<Mutex<dyn PowerSensor>>;
+pub type PowerSensorType = Arc<Mutex<dyn PowerSensor + Send>>;
 
 pub fn get_power_sensor_generic_readings(
     ps: &mut dyn PowerSensor,

@@ -10,6 +10,7 @@ use crate::{
 use core::cell::RefCell;
 use log::*;
 use std::{collections::HashMap, rc::Rc, sync::Arc, sync::Mutex, time::Duration};
+use crate::{proto::app::data_sync::v1::{SensorData, SensorMetadata, sensor_data::Data}, google::protobuf::Timestamp};
 
 use super::{
     analog::{AnalogError, FakeAnalogReader},
@@ -103,7 +104,35 @@ pub trait Board: Status + DoCommand {
 }
 
 /// An alias for a thread-safe handle to a struct that implements the [Board] trait
-pub type BoardType = Arc<Mutex<dyn Board>>;
+pub type BoardType = Arc<Mutex<dyn Board + Send>>;
+
+pub fn get_analog_readings_data(board: &mut dyn Board, name: String) -> anyhow::Result<SensorData> {
+    let analog_reader = board.get_analog_reader_by_name(name.clone())?;
+    let value = analog_reader.borrow_mut().read()?;
+    let current_date = chrono::offset::Local::now().fixed_offset();
+
+    let data_struct = Data::Struct(google::protobuf::Struct {
+        fields: HashMap::from([(
+            "analogs".to_string(),
+            google::protobuf::Value {
+                kind: Some(google::protobuf::value::Kind::StructValue(
+                    google::protobuf::Struct { fields: HashMap::from([
+                        ("value".to_string(), google::protobuf::Value { kind: Some(google::protobuf::value::Kind::NumberValue(value as f64)) }),
+                        // ("analog_name".to_string(), google::protobuf::Value { kind: Some(google::protobuf::value::Kind::StringValue(name)) })
+                    ]) },
+                ))
+            },
+        )]),
+    });
+
+    Ok(SensorData {
+        metadata: Some(SensorMetadata {
+            time_received: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+            time_requested: Some(Timestamp { seconds: current_date.timestamp(), nanos: current_date.timestamp_subsec_nanos() as i32 }),
+        }),
+        data: Some(data_struct),
+    })
+}
 
 #[doc(hidden)]
 /// A test implementation of a generic compute board

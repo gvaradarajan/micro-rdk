@@ -109,7 +109,7 @@ pub trait MovementSensor: Status + Readings + DoCommand {
     fn get_properties(&self) -> MovementSensorSupportedMethods;
 }
 
-pub type MovementSensorType = Arc<Mutex<dyn MovementSensor>>;
+pub type MovementSensorType = Arc<Mutex<dyn MovementSensor + Send>>;
 
 pub fn get_movement_sensor_generic_readings(
     ms: &mut dyn MovementSensor,

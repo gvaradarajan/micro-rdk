@@ -75,7 +75,7 @@ pub trait Motor: Status + Actuator + DoCommand {
     fn get_properties(&mut self) -> MotorSupportedProperties;
 }
 
-pub type MotorType = Arc<Mutex<dyn Motor>>;
+pub type MotorType = Arc<Mutex<dyn Motor + Send>>;
 
 #[derive(Debug)]
 pub enum MotorPinType {
@@ -387,6 +387,7 @@ mod tests {
                     ])),
                 ),
             ])),
+            ..Default::default()
         })];
 
         let val = robot_config[0]
@@ -433,6 +434,7 @@ mod tests {
                         ])),
                     ),
                 ])),
+                ..Default::default()
             }),
             Some(DynamicComponentConfig {
                 name: "motor".to_owned(),
@@ -451,6 +453,7 @@ mod tests {
                         ])),
                     ),
                 ])),
+                ..Default::default()
             }),
             Some(DynamicComponentConfig {
                 name: "motor2".to_owned(),
@@ -469,6 +472,7 @@ mod tests {
                         )])),
                     ),
                 ])),
+                ..Default::default()
             }),
             Some(DynamicComponentConfig {
                 name: "motor3".to_owned(),
@@ -487,6 +491,7 @@ mod tests {
                         ])),
                     ),
                 ])),
+                ..Default::default()
             }),
         ];
 

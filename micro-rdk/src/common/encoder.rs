@@ -121,7 +121,7 @@ pub trait SingleEncoder: Encoder {
     fn get_direction(&self) -> anyhow::Result<Direction>;
 }
 
-pub(crate) type EncoderType = Arc<Mutex<dyn Encoder>>;
+pub(crate) type EncoderType = Arc<Mutex<dyn Encoder + Send>>;
 
 #[derive(DoCommand)]
 pub struct FakeIncrementalEncoder {

@@ -16,7 +16,7 @@ pub trait Base: Status + Actuator + DoCommand {
     fn set_power(&mut self, lin: &Vector3, ang: &Vector3) -> anyhow::Result<()>;
 }
 
-pub type BaseType = Arc<Mutex<dyn Base>>;
+pub type BaseType = Arc<Mutex<dyn Base + Send>>;
 
 // TODO(RSDK-5648) - Store power from set_power call on struct and register as "fake" model
 #[derive(DoCommand)]

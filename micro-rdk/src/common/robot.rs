@@ -20,6 +20,7 @@ use crate::{
     common::status::Status,
     google,
     proto::{
+        app::data_sync::v1::{DataCaptureUploadRequest, DataType, UploadMetadata},
         app::v1::ConfigResponse,
         common::{self, v1::ResourceName},
         robot,
@@ -31,6 +32,7 @@ use super::{
     base::BaseType,
     board::BoardType,
     config::{AttributeError, Component, ConfigType, DynamicComponentConfig},
+    data_collector::{DataCollector, CollectionMethod},
     encoder::EncoderType,
     generic::{GenericComponent, GenericComponentType},
     motor::MotorType,
@@ -63,10 +65,27 @@ pub enum ResourceType {
 pub type Resource = ResourceType;
 pub type ResourceMap = HashMap<ResourceName, Resource>;
 
+impl ResourceType {
+    pub fn component_type(&self) -> String {
+        match self {
+            Self::Base(_) => "rdk:component:base",
+            Self::Board(_) => "rdk:component:board",
+            Self::Encoder(_) => "rdk:component:encoder",
+            Self::Generic(_) => "rdk:component:generic",
+            Self::Motor(_) => "rdk:component:motor",
+            Self::MovementSensor(_) => "rdk:component:movement_sensor",
+            Self::PowerSensor(_) => "rdk:component:power_sensor",
+            Self::Sensor(_) => "rdk:component:sensor",
+            Self::Servo(_) => "rdk:component:servo"
+        }.to_string()
+    }
+}
+
 #[derive(Default)]
 pub struct LocalRobot {
     resources: ResourceMap,
     build_time: Option<DateTime<FixedOffset>>,
+    data_collectors: Vec<DataCollector>
 }
 
 #[derive(Error, Debug)]
@@ -190,6 +209,7 @@ impl LocalRobot {
             // Use date time pulled off gRPC header as the `build_time` returned in the status of
             // every resource as `last_reconfigured`.
             build_time,
+            data_collectors: vec![]
         };
 
         let components: Result<Vec<Option<DynamicComponentConfig>>, AttributeError> = config_resp
@@ -294,6 +314,10 @@ impl LocalRobot {
         registry: &mut ComponentRegistry,
     ) -> Result<(), RobotError> {
         let r_type = cfg.get_type();
+        let collector_settings: Vec<(f32, CollectionMethod)> = cfg.get_data_collector_configs().iter().map(|collector_config| {
+            (collector_config.capture_frequency_hz, collector_config.method.clone())
+        }).collect();
+
         let res = match r_type {
             "motor" => {
                 let ctor = registry
@@ -360,6 +384,14 @@ impl LocalRobot {
                 ));
             }
         };
+        for (capture_frequency_hz, method) in collector_settings.iter() {
+            self.data_collectors.push(DataCollector::new(
+                r_name.name.to_string(),
+                res.clone(),
+                method.clone(),
+                *capture_frequency_hz
+            )?);
+        }
         self.resources.insert(r_name, res);
         Ok(())
     }
@@ -548,7 +580,7 @@ impl LocalRobot {
         }
         Ok(name)
     }
-    pub fn get_motor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Motor>>> {
+    pub fn get_motor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Motor + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -575,7 +607,7 @@ impl LocalRobot {
             None => None,
         }
     }
-    pub fn get_base_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Base>>> {
+    pub fn get_base_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Base + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -588,7 +620,7 @@ impl LocalRobot {
             None => None,
         }
     }
-    pub fn get_board_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Board>>> {
+    pub fn get_board_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Board + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -601,7 +633,7 @@ impl LocalRobot {
             None => None,
         }
     }
-    pub fn get_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Sensor>>> {
+    pub fn get_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Sensor + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -618,7 +650,7 @@ impl LocalRobot {
     pub fn get_movement_sensor_by_name(
         &self,
         name: String,
-    ) -> Option<Arc<Mutex<dyn MovementSensor>>> {
+    ) -> Option<Arc<Mutex<dyn MovementSensor + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -632,7 +664,7 @@ impl LocalRobot {
         }
     }
 
-    pub fn get_encoder_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Encoder>>> {
+    pub fn get_encoder_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Encoder + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -646,7 +678,7 @@ impl LocalRobot {
         }
     }
 
-    pub fn get_power_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn PowerSensor>>> {
+    pub fn get_power_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn PowerSensor + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -660,7 +692,7 @@ impl LocalRobot {
         }
     }
 
-    pub fn get_servo_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Servo>>> {
+    pub fn get_servo_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Servo + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -677,7 +709,7 @@ impl LocalRobot {
     pub fn get_generic_component_by_name(
         &self,
         name: String,
-    ) -> Option<Arc<Mutex<dyn GenericComponent>>> {
+    ) -> Option<Arc<Mutex<dyn GenericComponent + Send>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
             r#type: "component".to_string(),
@@ -721,6 +753,37 @@ impl LocalRobot {
             )
         }
         Ok(())
+    }
+
+    pub(crate) fn collect_readings(
+        &mut self,
+        part_id: &str,
+        time_interval_ms: &u64,
+    ) -> anyhow::Result<Vec<DataCaptureUploadRequest>> {
+        let res: anyhow::Result<Vec<DataCaptureUploadRequest>> = self.data_collectors.iter_mut().filter_map(|c| {
+            let collector_time_interval = c.time_interval();
+            if &collector_time_interval == time_interval_ms {
+                match c.collect_data() {
+                    Ok(data) => {
+                        Some(Ok(DataCaptureUploadRequest {
+                            metadata: Some(UploadMetadata {
+                                part_id: part_id.to_string(),
+                                component_type: c.component_type(),
+                                component_name: c.name(),
+                                method_name: c.method_str(),
+                                r#type: DataType::TabularSensor.into(),
+                                ..Default::default()
+                            }),
+                            sensor_contents: vec![data],
+                        }))
+                    },
+                    Err(err) => Some(Err(err))
+                }
+            } else {
+                None
+            }
+        }).collect();
+        res
     }
 }
 
@@ -779,6 +842,7 @@ mod tests {
                         ]),
                     ),
                 ])),
+                ..Default::default()
             }),
             Some(DynamicComponentConfig {
                 name: "motor".to_owned(),
@@ -801,6 +865,7 @@ mod tests {
                         ])),
                     ),
                 ])),
+                ..Default::default()
             }),
             Some(DynamicComponentConfig {
                 name: "sensor".to_owned(),
@@ -811,6 +876,7 @@ mod tests {
                     "fake_value".to_owned(),
                     Kind::StringValue("11.12".to_owned()),
                 )])),
+                ..Default::default()
             }),
             Some(DynamicComponentConfig {
                 name: "m_sensor".to_owned(),
@@ -840,6 +906,7 @@ mod tests {
                         Kind::StringValue("100.4".to_owned()),
                     ),
                 ])),
+                ..Default::default()
             }),
             Some(DynamicComponentConfig {
                 name: "enc1".to_owned(),
@@ -853,6 +920,7 @@ mod tests {
                         Kind::StringValue("2".to_owned()),
                     ),
                 ])),
+                ..Default::default()
             }),
             Some(DynamicComponentConfig {
                 name: "enc2".to_owned(),
@@ -863,6 +931,7 @@ mod tests {
                     "fake_ticks".to_owned(),
                     Kind::StringValue("3.0".to_owned()),
                 )])),
+                ..Default::default()
             }),
         ];
 

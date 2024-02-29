@@ -58,6 +58,18 @@ pub async fn serve_web_inner(
 
             let (cfg_response, cfg_received_datetime) = client.get_config().await.unwrap();
 
+            if let Some(current_dt) = cfg_received_datetime.as_ref() {
+                let tz = chrono_tz::Tz::UTC;
+                std::env::set_var("TZ", tz.name());
+                let tv_sec = current_dt.timestamp() as i32;
+                let tv_usec = current_dt.timestamp_subsec_micros() as i32;
+                let current_timeval = timeval { tv_sec, tv_usec };
+                let res = unsafe { settimeofday(&current_timeval as *const timeval, std::ptr::null()) };
+                if res != 0 {
+                    println!("could not set time of day for timezone {:?} and timestamp {:?}", tz.name(), current_dt);
+                }
+            }
+
             let robot = match repr {
                 RobotRepresentation::WithRobot(robot) => Arc::new(Mutex::new(robot)),
                 RobotRepresentation::WithRegistry(registry) => {
