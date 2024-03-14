@@ -1,6 +1,7 @@
 pub mod adxl345;
 #[cfg(feature = "esp32")]
 pub mod esp32_encoder;
+pub mod fake;
 pub mod gpio_motor;
 pub mod gpio_servo;
 pub mod ina;

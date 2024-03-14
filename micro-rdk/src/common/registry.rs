@@ -139,14 +139,9 @@ impl Default for ComponentRegistry {
     fn default() -> Self {
         let mut r = Self::new();
         crate::common::board::register_models(&mut r);
-        crate::common::encoder::register_models(&mut r);
-        crate::common::motor::register_models(&mut r);
-        crate::common::sensor::register_models(&mut r);
-        crate::common::movement_sensor::register_models(&mut r);
-        crate::common::generic::register_models(&mut r);
-        
         #[cfg(feature = "builtin")]
         {
+            crate::builtin::fake::register_models(&mut r);
             crate::builtin::gpio_motor::register_models(&mut r);
             crate::builtin::gpio_servo::register_models(&mut r);
             crate::builtin::mpu6050::register_models(&mut r);
@@ -591,10 +586,13 @@ mod tests {
             ctor.err().unwrap(),
             RegistryError::ModelNotFound("fake".to_string())
         );
-        common::motor::register_models(&mut registry);
 
-        let ctor = registry.get_motor_constructor("fake".to_string());
-        assert!(ctor.is_ok());
+        #[cfg(feature = "builtin")]
+        {
+            builtin::fake::register_models(&mut registry);
+            let ctor = registry.get_motor_constructor("fake".to_string());
+            assert!(ctor.is_ok());
+        }
 
         let ret = registry.register_motor("fake", &|_, _| Err(anyhow::anyhow!("not implemented")));
         assert!(ret.is_err());

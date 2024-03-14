@@ -1,8 +1,6 @@
 #![allow(dead_code)]
-use super::config::ConfigType;
 use super::generic::DoCommand;
 use super::math_utils::Vector3;
-use super::registry::{ComponentRegistry, Dependency};
 use super::sensor::{GenericReadingsResult, Readings};
 use super::status::Status;
 use crate::google;
@@ -14,15 +12,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 pub static COMPONENT_NAME: &str = "movement_sensor";
-
-pub(crate) fn register_models(registry: &mut ComponentRegistry) {
-    if registry
-        .register_movement_sensor("fake", &FakeMovementSensor::from_config)
-        .is_err()
-    {
-        log::error!("fake type is already registered");
-    }
-}
 
 // A local struct representation of the supported methods indicated by the
 // GetProperties method of the Movement Sensor API. TODO: add a boolean for
@@ -146,106 +135,6 @@ pub fn get_movement_sensor_generic_readings(
         );
     }
     Ok(res)
-}
-
-#[derive(DoCommand, MovementSensorReadings)]
-pub struct FakeMovementSensor {
-    pos: GeoPosition,
-    linear_acc: Vector3,
-}
-
-impl Default for FakeMovementSensor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl FakeMovementSensor {
-    pub fn new() -> Self {
-        FakeMovementSensor {
-            pos: GeoPosition {
-                lat: 27.33,
-                lon: 29.45,
-                alt: 4572.2,
-            },
-            linear_acc: Vector3 {
-                x: 5.0,
-                y: 2.0,
-                z: 3.0,
-            },
-        }
-    }
-    pub(crate) fn from_config(
-        cfg: ConfigType,
-        _: Vec<Dependency>,
-    ) -> anyhow::Result<MovementSensorType> {
-        let mut fake_pos: GeoPosition = Default::default();
-        if let Ok(fake_lat) = cfg.get_attribute::<f64>("fake_lat") {
-            fake_pos.lat = fake_lat
-        }
-        if let Ok(fake_lon) = cfg.get_attribute::<f64>("fake_lon") {
-            fake_pos.lon = fake_lon
-        }
-        if let Ok(fake_alt) = cfg.get_attribute::<f32>("fake_alt") {
-            fake_pos.alt = fake_alt
-        }
-
-        let mut lin_acc: Vector3 = Default::default();
-        if let Ok(x) = cfg.get_attribute::<f64>("lin_acc_x") {
-            lin_acc.x = x
-        }
-        if let Ok(y) = cfg.get_attribute::<f64>("lin_acc_y") {
-            lin_acc.y = y
-        }
-        if let Ok(z) = cfg.get_attribute::<f64>("lin_acc_z") {
-            lin_acc.z = z
-        }
-
-        Ok(Arc::new(Mutex::new(FakeMovementSensor {
-            pos: fake_pos,
-            linear_acc: lin_acc,
-        })))
-    }
-}
-
-impl MovementSensor for FakeMovementSensor {
-    fn get_position(&mut self) -> anyhow::Result<GeoPosition> {
-        Ok(self.pos)
-    }
-
-    fn get_linear_acceleration(&mut self) -> anyhow::Result<Vector3> {
-        Ok(self.linear_acc)
-    }
-
-    fn get_properties(&self) -> MovementSensorSupportedMethods {
-        MovementSensorSupportedMethods {
-            position_supported: true,
-            linear_acceleration_supported: true,
-            linear_velocity_supported: false,
-            angular_velocity_supported: false,
-            compass_heading_supported: false,
-        }
-    }
-
-    fn get_linear_velocity(&mut self) -> anyhow::Result<Vector3> {
-        anyhow::bail!("unimplemented: movement_sensor_get_linear_velocity")
-    }
-
-    fn get_angular_velocity(&mut self) -> anyhow::Result<Vector3> {
-        anyhow::bail!("unimplemented: movement_sensor_get_angular_velocity")
-    }
-
-    fn get_compass_heading(&mut self) -> anyhow::Result<f64> {
-        anyhow::bail!("unimplemented: movement_sensor_get_compass_heading")
-    }
-}
-
-impl Status for FakeMovementSensor {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
-        Ok(Some(google::protobuf::Struct {
-            fields: HashMap::new(),
-        }))
-    }
 }
 
 impl<A> MovementSensor for Mutex<A>

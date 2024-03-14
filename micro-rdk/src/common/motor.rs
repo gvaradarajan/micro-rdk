@@ -1,48 +1,14 @@
 #![allow(dead_code)]
 use crate::common::status::Status;
-use crate::google;
 use crate::proto::component::motor::v1::GetPropertiesResponse;
-use log::*;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use super::actuator::Actuator;
 use super::config::{AttributeError, ConfigType, Kind};
-use super::encoder::{
-    Encoder, EncoderPositionType, EncoderType, COMPONENT_NAME as EncoderCompName,
-};
+use super::actuator::Actuator;
 use super::generic::DoCommand;
-use super::math_utils::go_for_math;
-use super::registry::{ComponentRegistry, Dependency, ResourceKey};
-use super::robot::Resource;
 
 pub static COMPONENT_NAME: &str = "motor";
-
-pub(crate) fn register_models(registry: &mut ComponentRegistry) {
-    if registry
-        .register_motor("fake", &FakeMotor::from_config)
-        .is_err()
-    {
-        log::error!("fake type is already registered");
-    }
-    if registry
-        .register_motor("fake_with_dep", &FakeMotorWithDependency::from_config)
-        .is_err()
-    {
-        log::error!("fake_with_dep type is already registered");
-    }
-    if registry
-        .register_dependency_getter(
-            COMPONENT_NAME,
-            "fake_with_dep",
-            &FakeMotorWithDependency::dependencies_from_config,
-        )
-        .is_err()
-    {
-        log::error!("fake_with_dep type dependency function is already registered");
-    }
-}
 
 pub struct MotorSupportedProperties {
     pub position_reporting: bool,
@@ -105,13 +71,6 @@ impl MotorPinsConfig {
     }
 }
 
-#[derive(DoCommand)]
-pub struct FakeMotor {
-    pos: f64,
-    power: f64,
-    max_rpm: f64,
-}
-
 impl TryFrom<&Kind> for MotorPinsConfig {
     type Error = AttributeError;
     fn try_from(value: &Kind) -> Result<Self, Self::Error> {
@@ -167,31 +126,6 @@ impl TryFrom<&Kind> for MotorPinsConfig {
     }
 }
 
-impl FakeMotor {
-    pub fn new() -> Self {
-        Self {
-            pos: 10.0,
-            power: 0.0,
-            max_rpm: 100.0,
-        }
-    }
-    pub(crate) fn from_config(cfg: ConfigType, _: Vec<Dependency>) -> anyhow::Result<MotorType> {
-        let mut motor = FakeMotor::default();
-        if let Ok(pos) = cfg.get_attribute::<f64>("fake_position") {
-            motor.pos = pos
-        }
-        if let Ok(max_rpm) = cfg.get_attribute::<f64>("max_rpm") {
-            motor.max_rpm = max_rpm
-        }
-        Ok(Arc::new(Mutex::new(motor)))
-    }
-}
-impl Default for FakeMotor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl<L> Motor for Mutex<L>
 where
     L: ?Sized + Motor,
@@ -225,138 +159,6 @@ where
     }
     fn get_properties(&mut self) -> MotorSupportedProperties {
         self.lock().unwrap().get_properties()
-    }
-}
-
-impl Motor for FakeMotor {
-    fn get_position(&mut self) -> anyhow::Result<i32> {
-        Ok(self.pos as i32)
-    }
-    fn set_power(&mut self, pct: f64) -> anyhow::Result<()> {
-        debug!("setting power to {}", pct);
-        self.power = pct;
-        Ok(())
-    }
-    fn go_for(&mut self, rpm: f64, revolutions: f64) -> anyhow::Result<Option<Duration>> {
-        // get_max_rpm
-        let (pwr, dur) = go_for_math(self.max_rpm, rpm, revolutions)?;
-        self.set_power(pwr)?;
-        Ok(dur)
-    }
-    fn get_properties(&mut self) -> MotorSupportedProperties {
-        MotorSupportedProperties {
-            position_reporting: true,
-        }
-    }
-}
-impl Status for FakeMotor {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
-        let mut hm = HashMap::new();
-        hm.insert(
-            "position".to_string(),
-            google::protobuf::Value {
-                kind: Some(google::protobuf::value::Kind::NumberValue(self.pos)),
-            },
-        );
-        hm.insert(
-            "position_reporting".to_string(),
-            google::protobuf::Value {
-                kind: Some(google::protobuf::value::Kind::BoolValue(true)),
-            },
-        );
-
-        Ok(Some(google::protobuf::Struct { fields: hm }))
-    }
-}
-
-impl Actuator for FakeMotor {
-    fn stop(&mut self) -> anyhow::Result<()> {
-        debug!("stopping motor");
-        self.set_power(0.0)?;
-        Ok(())
-    }
-    fn is_moving(&mut self) -> anyhow::Result<bool> {
-        Ok(self.power > 0.0)
-    }
-}
-
-#[derive(DoCommand)]
-pub struct FakeMotorWithDependency {
-    encoder: Option<EncoderType>,
-    power: f64,
-}
-
-impl FakeMotorWithDependency {
-    pub fn new(encoder: Option<EncoderType>) -> Self {
-        Self {
-            encoder,
-            power: 0.0,
-        }
-    }
-
-    pub(crate) fn dependencies_from_config(cfg: ConfigType) -> Vec<ResourceKey> {
-        let mut r_keys = Vec::new();
-        log::info!("getting deps");
-        if let Ok(enc_name) = cfg.get_attribute::<String>("encoder") {
-            let r_key = ResourceKey(EncoderCompName, enc_name);
-            r_keys.push(r_key)
-        }
-        r_keys
-    }
-
-    pub(crate) fn from_config(_: ConfigType, deps: Vec<Dependency>) -> anyhow::Result<MotorType> {
-        let mut enc: Option<EncoderType> = None;
-        for Dependency(_, dep) in deps {
-            match dep {
-                Resource::Encoder(found_enc) => {
-                    enc = Some(found_enc.clone());
-                    break;
-                }
-                _ => {
-                    continue;
-                }
-            };
-        }
-        Ok(Arc::new(Mutex::new(Self::new(enc))))
-    }
-}
-
-impl Motor for FakeMotorWithDependency {
-    fn get_position(&mut self) -> anyhow::Result<i32> {
-        match &self.encoder {
-            Some(enc) => Ok(enc.get_position(EncoderPositionType::DEGREES)?.value as i32),
-            None => Ok(0),
-        }
-    }
-    fn set_power(&mut self, pct: f64) -> anyhow::Result<()> {
-        debug!("setting power to {}", pct);
-        self.power = pct;
-        Ok(())
-    }
-    fn go_for(&mut self, _: f64, _: f64) -> anyhow::Result<Option<Duration>> {
-        anyhow::bail!("go_for unimplemented")
-    }
-    fn get_properties(&mut self) -> MotorSupportedProperties {
-        MotorSupportedProperties {
-            position_reporting: true,
-        }
-    }
-}
-
-impl Status for FakeMotorWithDependency {
-    fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
-        let hm = HashMap::new();
-        Ok(Some(google::protobuf::Struct { fields: hm }))
-    }
-}
-
-impl Actuator for FakeMotorWithDependency {
-    fn stop(&mut self) -> anyhow::Result<()> {
-        self.power = 0.0;
-        Ok(())
-    }
-    fn is_moving(&mut self) -> anyhow::Result<bool> {
-        Ok(self.power > 0.0)
     }
 }
 
