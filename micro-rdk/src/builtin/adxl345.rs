@@ -4,12 +4,12 @@ use crate::common::math_utils::Vector3;
 use crate::common::movement_sensor::{MovementSensor, MovementSensorSupportedMethods};
 use crate::google;
 
-use super::board::Board;
-use super::config::ConfigType;
-use super::i2c::I2CHandle;
-use super::movement_sensor::MovementSensorType;
-use super::registry::{get_board_from_dependencies, ComponentRegistry, Dependency};
-use super::status::Status;
+use crate::common::board::Board;
+use crate::common::config::ConfigType;
+use crate::common::i2c::I2CHandle;
+use crate::common::movement_sensor::MovementSensorType;
+use crate::common::registry::{get_board_from_dependencies, ComponentRegistry, Dependency};
+use crate::common::status::Status;
 
 use std::collections::HashMap;
 use std::mem::size_of;
@@ -133,7 +133,7 @@ impl MovementSensor for ADXL345 {
         anyhow::bail!("unimplemented: movement_sensor_get_angular_velocity")
     }
 
-    fn get_position(&mut self) -> anyhow::Result<super::movement_sensor::GeoPosition> {
+    fn get_position(&mut self) -> anyhow::Result<crate::common::movement_sensor::GeoPosition> {
         anyhow::bail!("unimplemented: movement_sensor_get_position")
     }
 

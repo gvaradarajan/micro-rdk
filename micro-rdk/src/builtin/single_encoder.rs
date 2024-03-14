@@ -1,7 +1,7 @@
 use embedded_hal::digital::v2::InputPin;
 
-use super::pin::PinExt;
-use super::pulse_counter::{get_unit, isr_install, isr_installed, isr_remove_unit};
+use crate::esp32::pin::PinExt;
+use crate::esp32::pulse_counter::{get_unit, isr_install, isr_installed, isr_remove_unit};
 
 use crate::common::config::{AttributeError, ConfigType};
 use crate::common::encoder::{

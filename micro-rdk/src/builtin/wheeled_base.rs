@@ -1,10 +1,10 @@
-use super::actuator::Actuator;
-use super::base::{Base, BaseType, COMPONENT_NAME as BaseCompName};
-use super::config::ConfigType;
-use super::motor::{Motor, MotorType, COMPONENT_NAME as MotorCompName};
-use super::registry::{ComponentRegistry, Dependency, ResourceKey};
-use super::robot::Resource;
-use super::status::Status;
+use crate::common::actuator::Actuator;
+use crate::common::base::{Base, BaseType, COMPONENT_NAME as BaseCompName};
+use crate::common::config::ConfigType;
+use crate::common::motor::{Motor, MotorType, COMPONENT_NAME as MotorCompName};
+use crate::common::registry::{ComponentRegistry, Dependency, ResourceKey};
+use crate::common::robot::Resource;
+use crate::common::status::Status;
 use crate::google;
 use crate::proto::common::v1::Vector3;
 use std::collections::HashMap;

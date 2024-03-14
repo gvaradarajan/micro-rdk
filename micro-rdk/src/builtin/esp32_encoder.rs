@@ -1,5 +1,5 @@
-use super::pin::PinExt;
-use super::pulse_counter::{get_unit, isr_install, isr_remove_unit};
+use crate::esp32::pin::PinExt;
+use crate::esp32::pulse_counter::{get_unit, isr_install, isr_remove_unit};
 
 use crate::esp32::esp_idf_svc::hal::gpio::{AnyInputPin, Input, PinDriver};
 use crate::esp32::esp_idf_svc::sys::pcnt_channel_edge_action_t_PCNT_CHANNEL_EDGE_ACTION_DECREASE as pcnt_count_dec;

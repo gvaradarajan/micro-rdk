@@ -43,20 +43,20 @@ use std::time::Duration;
 
 use anyhow::Context;
 
-use super::actuator::Actuator;
-use super::board::{Board, BoardType};
-use super::config::ConfigType;
-use super::encoder::{
+use crate::common::actuator::Actuator;
+use crate::common::board::{Board, BoardType};
+use crate::common::config::ConfigType;
+use crate::common::encoder::{
     Encoder, EncoderPositionType, EncoderType, COMPONENT_NAME as EncoderCompName,
 };
-use super::math_utils::go_for_math;
-use super::motor::{
+use crate::common::math_utils::go_for_math;
+use crate::common::motor::{
     Motor, MotorPinType, MotorPinsConfig, MotorSupportedProperties, MotorType,
     COMPONENT_NAME as MotorCompName,
 };
-use super::registry::{get_board_from_dependencies, ComponentRegistry, Dependency, ResourceKey};
-use super::robot::Resource;
-use super::status::Status;
+use crate::common::registry::{get_board_from_dependencies, ComponentRegistry, Dependency, ResourceKey};
+use crate::common::robot::Resource;
+use crate::common::status::Status;
 use crate::google;
 
 pub(crate) fn register_models(registry: &mut ComponentRegistry) {

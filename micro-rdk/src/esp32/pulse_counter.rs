@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::esp32::esp_idf_svc::sys::{
     pcnt_isr_service_install, pcnt_isr_service_uninstall, EspError, ESP_OK,
 };

@@ -12,14 +12,13 @@
 ///
 /// The calibration register is programmed to measure current and power properly.
 /// The calibration register is set to: calibratescale / (current_lsb * sense_resistor)
-use crate::common::i2c::I2CHandle;
 use core::fmt;
 use std::sync::{Arc, Mutex};
 
-use super::{
+use crate::common::{
     board::Board,
     config::ConfigType,
-    i2c::{I2CErrors, I2cHandleType},
+    i2c::{I2CErrors, I2CHandle, I2cHandleType},
     power_sensor::{Current, PowerSensor, PowerSensorType, PowerSupplyType, Voltage},
     registry::{get_board_from_dependencies, ComponentRegistry, Dependency},
     status::Status,

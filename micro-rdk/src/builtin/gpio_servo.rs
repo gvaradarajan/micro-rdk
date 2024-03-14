@@ -24,7 +24,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use super::{
+use crate::common::{
     actuator::Actuator,
     board::{Board, BoardType},
     config::{AttributeError, ConfigType},

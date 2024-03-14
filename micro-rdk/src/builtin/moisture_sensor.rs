@@ -3,14 +3,13 @@ use crate::common::sensor::GenericReadingsResult;
 use crate::common::sensor::Sensor;
 use crate::common::sensor::SensorResult;
 use crate::common::sensor::SensorT;
+use crate::common::sensor::Readings;
 use crate::common::sensor::TypedReadingsResult;
 use crate::common::status::Status;
 use crate::google;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-
-use super::sensor::Readings;
 
 #[derive(DoCommand)]
 pub struct MoistureSensor {
