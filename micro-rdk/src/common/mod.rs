@@ -41,7 +41,6 @@ pub mod grpc_client;
 pub mod i2c;
 pub mod log;
 pub mod math_utils;
-pub mod motor;
 pub mod registry;
 pub mod robot;
 pub mod status;

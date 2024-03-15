@@ -7,9 +7,11 @@ use super::{
     board::{BoardError, BoardType},
     config::ConfigType,
     generic::GenericComponentType,
-    motor::MotorType,
     robot::Resource,
 };
+
+#[cfg(feature = "motor")]
+use crate::components::motor::MotorType;
 
 #[cfg(feature = "encoder")]
 use crate::components::encoder::EncoderType;
@@ -61,7 +63,8 @@ pub struct ResourceKey(pub &'static str, pub String);
 impl ResourceKey {
     pub fn new(model: &str, name: String) -> Result<Self, anyhow::Error> {
         let model_str = match model {
-            "motor" => crate::common::motor::COMPONENT_NAME,
+            #[cfg(feature = "motor")]
+            "motor" => crate::components::motor::COMPONENT_NAME,
             "board" => crate::common::board::COMPONENT_NAME,
             #[cfg(feature = "encoder")]
             "encoder" => crate::components::encoder::COMPONENT_NAME,
@@ -88,7 +91,8 @@ impl TryFrom<ResourceName> for ResourceKey {
     fn try_from(value: ResourceName) -> Result<Self, Self::Error> {
         let comp_type: &str = &value.subtype;
         let comp_name = match comp_type {
-            "motor" => crate::common::motor::COMPONENT_NAME,
+            #[cfg(feature = "motor")]
+            "motor" => crate::components::motor::COMPONENT_NAME,
             #[cfg(feature = "sensor")]
             "sensor" => crate::components::sensor::COMPONENT_NAME,
             #[cfg(feature = "movement_sensor")]
@@ -114,6 +118,7 @@ pub struct Dependency(pub ResourceKey, pub Resource);
 /// Fn that returns a `BoardType`, `Arc<Mutex<dyn Board>>`
 type BoardConstructor = dyn Fn(ConfigType) -> Result<BoardType, BoardError>;
 
+#[cfg(feature = "motor")]
 /// Fn that returns a `MotorType`, `Arc<Mutex<dyn Motor>>`
 type MotorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<MotorType>;
 
@@ -149,6 +154,7 @@ type GenericComponentConstructor =
 type DependenciesFromConfig = dyn Fn(ConfigType) -> Vec<ResourceKey>;
 
 pub struct ComponentRegistry {
+    #[cfg(feature = "motor")]
     motors: Map<&'static str, &'static MotorConstructor>,
     board: Map<&'static str, &'static BoardConstructor>,
     #[cfg(feature = "sensor")]
@@ -202,7 +208,8 @@ impl Default for ComponentRegistry {
 impl ComponentRegistry {
     pub fn new() -> Self {
         let mut dependency_func_map = Map::new();
-        dependency_func_map.insert(crate::common::motor::COMPONENT_NAME, Map::new());
+        #[cfg(feature = "motor")]
+        dependency_func_map.insert(crate::components::motor::COMPONENT_NAME, Map::new());
         #[cfg(feature = "movement_sensor")]
         dependency_func_map.insert(crate::components::movement_sensor::COMPONENT_NAME, Map::new());
         #[cfg(feature = "encoder")]
@@ -216,6 +223,7 @@ impl ComponentRegistry {
         dependency_func_map.insert(crate::components::power_sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::generic::COMPONENT_NAME, Map::new());
         Self {
+            #[cfg(feature = "motor")]
             motors: Map::new(),
             board: Map::new(),
             #[cfg(feature = "sensor")]
@@ -233,6 +241,7 @@ impl ComponentRegistry {
             dependencies: dependency_func_map,
         }
     }
+    #[cfg(feature = "motor")]
     pub fn register_motor(
         &mut self,
         model: &'static str,
@@ -396,6 +405,7 @@ impl ComponentRegistry {
         Err(RegistryError::ModelNotFound(model))
     }
 
+    #[cfg(feature = "motor")]
     pub(crate) fn get_motor_constructor(
         &self,
         model: String,

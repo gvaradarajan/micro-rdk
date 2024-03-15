@@ -230,19 +230,29 @@ where
             "/viam.component.camera.v1.CameraService/RenderFrame" => {
                 self.camera_render_frame(payload)
             }
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/GetPosition" => self.motor_get_position(payload),
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/GetProperties" => {
                 self.motor_get_properties(payload)
             }
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/GoFor" => self.motor_go_for(payload),
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/GoTo" => self.motor_go_to(payload),
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/IsPowered" => self.motor_is_powered(payload),
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/IsMoving" => self.motor_is_moving(payload),
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/ResetZeroPosition" => {
                 self.motor_reset_zero_position(payload)
             }
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/SetPower" => self.motor_set_power(payload),
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/Stop" => self.motor_stop(payload),
+            #[cfg(feature = "motor")]
             "/viam.component.motor.v1.MotorService/DoCommand" => self.motor_do_command(payload),
             "/viam.robot.v1.RobotService/ResourceNames" => self.resource_names(payload),
             "/viam.robot.v1.RobotService/GetStatus" => self.robot_status(payload),
@@ -347,6 +357,7 @@ where
         }
     }
 
+    #[cfg(feature = "motor")]
     fn motor_get_position(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::motor::v1::GetPositionRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -365,6 +376,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "motor")]
     fn motor_get_properties(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::motor::v1::GetPropertiesRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -377,6 +389,7 @@ where
         self.encode_message(props)
     }
 
+    #[cfg(feature = "motor")]
     fn motor_go_for(&mut self, _message: &[u8]) -> Result<(), ServerError> {
         // TODO: internal go_for can't wait without blocking executor, must be waited from here.
         // requires refactoring this function (and its callers) to be async
@@ -400,14 +413,17 @@ where
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "motor")]
     fn motor_go_to(&mut self, _message: &[u8]) -> Result<(), ServerError> {
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "motor")]
     fn motor_is_powered(&mut self, _message: &[u8]) -> Result<(), ServerError> {
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "motor")]
     fn motor_is_moving(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::motor::v1::IsMovingRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -425,10 +441,12 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "motor")]
     fn motor_reset_zero_position(&mut self, _message: &[u8]) -> Result<(), ServerError> {
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "motor")]
     fn motor_do_command(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = proto::common::v1::DoCommandRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -454,6 +472,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "motor")]
     fn motor_set_power(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::motor::v1::SetPowerRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -470,6 +489,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "motor")]
     fn motor_stop(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::motor::v1::StopRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;

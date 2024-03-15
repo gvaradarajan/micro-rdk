@@ -51,7 +51,7 @@ use crate::components::encoder::{
     Encoder, EncoderPositionType, EncoderType, COMPONENT_NAME as EncoderCompName,
 };
 use crate::common::math_utils::go_for_math;
-use crate::common::motor::{
+use crate::components::motor::{
     Motor, MotorPinType, MotorPinsConfig, MotorSupportedProperties, MotorType,
     COMPONENT_NAME as MotorCompName,
 };

@@ -4,9 +4,12 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use crate::google;
-use crate::proto::component::encoder::v1::GetPositionResponse;
-use crate::proto::component::encoder::v1::GetPropertiesResponse;
-use crate::proto::component::encoder::v1::PositionType;
+#[cfg(feature = "encoder")]
+use crate::proto::component::encoder::{
+    v1::GetPositionResponse,
+    v1::GetPropertiesResponse,
+    v1::PositionType,
+};
 
 use crate::common::actuator::Actuator;
 use crate::common::config::{AttributeError, ConfigType, Kind};
@@ -15,24 +18,29 @@ use crate::common::math_utils::{Vector3, go_for_math};
 use crate::common::registry::{ComponentRegistry, Dependency, ResourceKey};
 use crate::common::robot::Resource;
 use crate::common::status::Status;
-
+#[cfg(feature = "encoder")]
 use crate::components::encoder::{Encoder, EncoderType, EncoderPositionType, EncoderPosition, EncoderSupportedRepresentations, COMPONENT_NAME as EncoderCompName};
-use crate::common::motor::{
+#[cfg(feature = "motor")]
+use crate::components::motor::{
     Motor, MotorPinType, MotorPinsConfig, MotorSupportedProperties, MotorType,
     COMPONENT_NAME as MotorCompName,
 };
+#[cfg(feature = "movement_sensor")]
 use crate::components::movement_sensor::{MovementSensor, MovementSensorSupportedMethods, MovementSensorType, GeoPosition};
+#[cfg(feature = "sensor")]
 use crate::components::sensor::{Sensor, SensorT, SensorType, Readings, GenericReadingsResult, SensorResult, TypedReadingsResult};
 
 use log::*;
 
 pub(crate) fn register_models(registry: &mut ComponentRegistry) {
+    #[cfg(feature = "encoder")]
     if registry
         .register_encoder("fake", &FakeEncoder::from_config)
         .is_err()
     {
         log::error!("fake type is already registered");
     }
+    #[cfg(feature = "encoder")]
     if registry
         .register_encoder("fake_incremental", &FakeIncrementalEncoder::from_config)
         .is_err()
@@ -45,18 +53,21 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
     {
         log::error!("model fake is already registered")
     }
+    #[cfg(feature = "motor")]
     if registry
         .register_motor("fake", &FakeMotor::from_config)
         .is_err()
     {
         log::error!("fake type is already registered");
     }
+    #[cfg(feature = "motor")]
     if registry
         .register_motor("fake_with_dep", &FakeMotorWithDependency::from_config)
         .is_err()
     {
         log::error!("fake_with_dep type is already registered");
     }
+    #[cfg(feature = "motor")]
     if registry
         .register_dependency_getter(
             MotorCompName,
@@ -67,12 +78,14 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
     {
         log::error!("fake_with_dep type dependency function is already registered");
     }
+    #[cfg(feature = "movement_sensor")]
     if registry
         .register_movement_sensor("fake", &FakeMovementSensor::from_config)
         .is_err()
     {
         log::error!("fake type is already registered");
     }
+    #[cfg(feature = "sensor")]
     if registry
         .register_sensor("fake", &FakeSensor::from_config)
         .is_err()
@@ -81,6 +94,7 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
     }
 }
 
+#[cfg(feature = "encoder")]
 #[derive(DoCommand)]
 pub struct FakeIncrementalEncoder {
     pub ticks: f32,
@@ -136,6 +150,7 @@ impl Status for FakeIncrementalEncoder {
     }
 }
 
+#[cfg(feature = "encoder")]
 #[derive(DoCommand)]
 pub struct FakeEncoder {
     pub angle_degrees: f32,
@@ -243,6 +258,7 @@ impl Status for FakeGenericComponent {
     }
 }
 
+#[cfg(feature = "motor")]
 #[derive(DoCommand)]
 pub struct FakeMotor {
     pos: f64,
@@ -327,6 +343,7 @@ impl Actuator for FakeMotor {
     }
 }
 
+#[cfg(feature = "motor")]
 #[derive(DoCommand)]
 pub struct FakeMotorWithDependency {
     encoder: Option<EncoderType>,
@@ -407,6 +424,7 @@ impl Actuator for FakeMotorWithDependency {
     }
 }
 
+#[cfg(feature = "movement_sensor")]
 #[derive(DoCommand, MovementSensorReadings)]
 pub struct FakeMovementSensor {
     pos: GeoPosition,
@@ -507,6 +525,7 @@ impl Status for FakeMovementSensor {
     }
 }
 
+#[cfg(feature = "sensor")]
 #[derive(DoCommand)]
 pub struct FakeSensor {
     fake_reading: f64,

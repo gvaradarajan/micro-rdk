@@ -13,7 +13,6 @@ use crate::{
     common::actuator::Actuator,
     common::base::Base,
     common::board::Board,
-    common::motor::Motor,
     common::status::Status,
     google,
     proto::{
@@ -29,11 +28,13 @@ use super::{
     board::BoardType,
     config::{AttributeError, Component, ConfigType, DynamicComponentConfig},
     generic::{GenericComponent, GenericComponentType},
-    motor::MotorType,
     registry::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
 };
+
+#[cfg(feature = "motor")]
+use crate::components::motor::{Motor, MotorType};
 
 #[cfg(feature = "encoder")]
 use crate::components::encoder::{Encoder, EncoderType};
@@ -56,6 +57,7 @@ static NAMESPACE_PREFIX: &str = "rdk:builtin:";
 
 #[derive(Clone)]
 pub enum ResourceType {
+    #[cfg(feature = "motor")]
     Motor(MotorType),
     Board(BoardType),
     Base(BaseType),
@@ -254,7 +256,8 @@ impl LocalRobot {
         registry: &mut ComponentRegistry,
     ) -> Result<Vec<Dependency>, RobotError> {
         let type_as_static = match config.get_type() {
-            "motor" => crate::common::motor::COMPONENT_NAME,
+            #[cfg(feature = "motor")]
+            "motor" => crate::components::motor::COMPONENT_NAME,
             "board" => crate::common::board::COMPONENT_NAME,
             #[cfg(feature = "encoder")]
             "encoder" => crate::components::encoder::COMPONENT_NAME,
@@ -313,6 +316,7 @@ impl LocalRobot {
     ) -> Result<(), RobotError> {
         let r_type = cfg.get_type();
         let res = match r_type {
+            #[cfg(feature = "motor")]
             "motor" => {
                 let ctor = registry
                     .get_motor_constructor(model)
@@ -399,6 +403,7 @@ impl LocalRobot {
             let mut vec = Vec::with_capacity(self.resources.len());
             for (name, val) in self.resources.iter_mut() {
                 match val {
+                    #[cfg(feature = "motor")]
                     ResourceType::Motor(m) => {
                         let status = m.get_status()?;
                         vec.push(robot::v1::Status {
@@ -488,6 +493,7 @@ impl LocalRobot {
             match self.resources.get_mut(&name) {
                 Some(val) => {
                     match val {
+                        #[cfg(feature = "motor")]
                         ResourceType::Motor(m) => {
                             let status = m.get_status()?;
                             vec.push(robot::v1::Status {
@@ -581,6 +587,7 @@ impl LocalRobot {
         }
         Ok(name)
     }
+    #[cfg(feature = "motor")]
     pub fn get_motor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Motor>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
@@ -741,6 +748,7 @@ impl LocalRobot {
                         }
                     };
                 }
+                #[cfg(feature = "motor")]
                 ResourceType::Motor(m) => {
                     match m.stop() {
                         Ok(_) => {}
@@ -771,7 +779,8 @@ mod tests {
     #[cfg(feature = "encoder")]
     use crate::components::encoder::{Encoder, EncoderPositionType};
     use crate::common::i2c::I2CHandle;
-    use crate::common::motor::Motor;
+    #[cfg(feature = "motor")]
+    use crate::components::motor::Motor;
     #[cfg(feature = "movement_sensor")]
     use crate::components::movement_sensor::MovementSensor;
     use crate::common::robot::LocalRobot;
@@ -821,6 +830,7 @@ mod tests {
                     ),
                 ])),
             }),
+            #[cfg(feature = "motor")]
             Some(DynamicComponentConfig {
                 name: "motor".to_owned(),
                 namespace: "rdk".to_owned(),
@@ -916,15 +926,18 @@ mod tests {
         let ret = robot.process_components(robot_config, Box::default());
         ret.unwrap();
 
-        let motor = robot.get_motor_by_name("motor".to_string());
+        #[cfg(feature = "motor")]
+        {
+            let motor = robot.get_motor_by_name("motor".to_string());
 
-        assert!(motor.is_some());
+            assert!(motor.is_some());
 
-        let position = motor.unwrap().get_position();
+            let position = motor.unwrap().get_position();
 
-        assert!(position.is_ok());
+            assert!(position.is_ok());
 
-        assert_eq!(position.ok().unwrap(), 1205);
+            assert_eq!(position.ok().unwrap(), 1205);
+        }
 
         let board = robot.get_board_by_name("board".to_string());
 
@@ -1091,7 +1104,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "encoder")]
+    #[cfg(all(feature = "encoder", feature = "motor"))]
     #[test_log::test]
     fn test_from_cloud_config() {
         let mut component_cfgs = Vec::new();
@@ -1218,7 +1231,7 @@ mod tests {
         assert_eq!(position.ok().unwrap(), 180);
     }
 
-    #[cfg(feature = "encoder")]
+    #[cfg(all(feature = "encoder", feature = "motor"))]
     #[test_log::test]
     fn test_cloud_config_missing_dependencies() {
         let mut component_cfgs = Vec::new();

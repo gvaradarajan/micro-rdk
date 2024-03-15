@@ -1,5 +1,7 @@
 #[cfg(feature = "encoder")]
 pub mod encoder;
+#[cfg(feature = "motor")]
+pub mod motor;
 #[cfg(feature = "movement_sensor")]
 pub mod movement_sensor;
 #[cfg(feature = "power_sensor")]

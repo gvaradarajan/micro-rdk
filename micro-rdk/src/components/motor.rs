@@ -4,9 +4,9 @@ use crate::proto::component::motor::v1::GetPropertiesResponse;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use super::config::{AttributeError, Kind};
-use super::actuator::Actuator;
-use super::generic::DoCommand;
+use crate::common::config::{AttributeError, Kind};
+use crate::common::actuator::Actuator;
+use crate::common::generic::DoCommand;
 
 pub static COMPONENT_NAME: &str = "motor";
 
@@ -167,7 +167,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::common::config::{Component, DynamicComponentConfig, Kind};
-    use crate::common::motor::{ConfigType, FakeMotor, MotorPinType, MotorPinsConfig};
+    use crate::components::motor::{ConfigType, FakeMotor, MotorPinType, MotorPinsConfig};
     #[test_log::test]
     fn test_motor_config() -> anyhow::Result<()> {
         let robot_config: [Option<DynamicComponentConfig>; 1] = [Some(DynamicComponentConfig {
