@@ -18,10 +18,12 @@ use std::{sync::Arc, sync::Mutex, time::Duration};
 #[cfg(feature = "analog")]
 use super::analog::{AnalogError, FakeAnalogReader, AnalogReader};
 
+#[cfg(feature = "i2c")]
+use super::i2c::{FakeI2CHandle, FakeI2cConfig, I2CErrors, I2CHandle, I2cHandleType};
+
 use super::{
     config::ConfigType,
     generic::DoCommand,
-    i2c::{FakeI2CHandle, FakeI2cConfig, I2CErrors, I2CHandle, I2cHandleType},
     registry::ComponentRegistry,
 };
 
@@ -33,16 +35,19 @@ pub enum BoardError {
     GpioPinError(u32, &'static str),
     #[error("pin {0} error: {1}")]
     GpioPinOtherError(u32, Box<dyn std::error::Error + Send + Sync>),
+    #[cfg(feature = "analog")]
     #[error("analog reader {0} not found")]
     AnalogReaderNotFound(String),
     #[error("board unsupported argument {0} ")]
     BoardUnsupportedArgument(&'static str),
+    #[cfg(feature = "i2c")]
     #[error("i2c bus {0} not found")]
     I2CBusNotFound(String),
     #[error(transparent)]
     OtherBoardError(#[from] Box<dyn std::error::Error + Send + Sync>),
     #[error("method: {0} not supported")]
     BoardMethodNotSupported(&'static str),
+    #[cfg(feature = "i2c")]
     #[error(transparent)]
     BoardI2CError(#[from] I2CErrors),
 }
@@ -84,6 +89,7 @@ pub trait Board: Status + DoCommand {
         duration: Option<Duration>,
     ) -> Result<(), BoardError>;
 
+    #[cfg(feature = "i2c")]
     /// Get a wrapped [I2CHandle] by name.
     fn get_i2c_by_name(&self, name: String) -> Result<I2cHandleType, BoardError>;
 
@@ -113,19 +119,19 @@ pub trait Board: Status + DoCommand {
 /// An alias for a thread-safe handle to a struct that implements the [Board] trait
 pub type BoardType = Arc<Mutex<dyn Board>>;
 
-#[cfg(feature = "analog")]
+#[cfg(all(feature = "analog", feature = "i2c"))]
 #[doc(hidden)]
 /// A test implementation of a generic compute board
 #[derive(DoCommand)]
 pub struct FakeBoard {
-    #[cfg(feature = "analog")]
+    #[cfg(all(feature = "analog", feature = "i2c"))]
     analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = AnalogError>>>>,
     i2cs: HashMap<String, Arc<Mutex<FakeI2CHandle>>>,
     pin_pwms: HashMap<i32, f64>,
     pin_pwm_freq: HashMap<i32, u64>,
 }
 
-#[cfg(feature = "analog")]
+#[cfg(all(feature = "analog", feature = "i2c"))]
 impl FakeBoard {
     pub fn new(analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = AnalogError>>>>) -> Self {
         let mut i2cs: HashMap<String, Arc<Mutex<FakeI2CHandle>>> = HashMap::new();
@@ -179,7 +185,7 @@ impl FakeBoard {
     }
 }
 
-#[cfg(feature = "analog")]
+#[cfg(all(feature = "analog", feature = "i2c"))]
 impl Board for FakeBoard {
     fn set_gpio_pin_level(&mut self, pin: i32, is_high: bool) -> Result<(), BoardError> {
         info!("set pin {} to {}", pin, is_high);
@@ -260,7 +266,7 @@ impl Board for FakeBoard {
     }
 }
 
-#[cfg(feature = "analog")]
+#[cfg(all(feature = "analog", feature = "i2c"))]
 impl Status for FakeBoard {
     fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
@@ -331,6 +337,7 @@ where
         self.lock().unwrap().set_power_mode(mode, duration)
     }
 
+    #[cfg(feature = "i2c")]
     fn get_i2c_by_name(&self, name: String) -> Result<I2cHandleType, BoardError> {
         self.lock().unwrap().get_i2c_by_name(name)
     }

@@ -781,7 +781,7 @@ impl LocalRobot {
     }
 }
 
-#[cfg(feature = "analog")]
+#[cfg(all(feature = "analog", feature = "i2c"))]
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;

@@ -9,6 +9,7 @@ pub mod dtls;
 pub mod entry;
 pub mod esp_idf_svc;
 pub mod exec;
+#[cfg(feature = "i2c")]
 pub mod i2c;
 pub mod pin;
 pub mod pulse_counter;

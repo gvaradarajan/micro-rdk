@@ -16,12 +16,14 @@ use std::{
 #[cfg(feature = "analog")]
 use crate::common::analog::{AnalogError, AnalogReader, AnalogReaderConfig};
 
+#[cfg(feature = "i2c")]
+use crate::common::i2c::I2cHandleType;
+
 use crate::{
     common::{
         board::{Board, BoardError, BoardType},
         config::ConfigType,
         digital_interrupt::DigitalInterruptConfig,
-        i2c::I2cHandleType,
         registry::ComponentRegistry,
         status::Status,
     },
@@ -32,10 +34,10 @@ use crate::{
 #[cfg(feature = "analog")]
 use super::analog::Esp32AnalogReader;
 
-use super::{
-    i2c::{Esp32I2C, Esp32I2cConfig},
-    pin::Esp32GPIOPin,
-};
+#[cfg(feature = "i2c")]
+use super::i2c::{Esp32I2C, Esp32I2cConfig};
+
+use super::pin::Esp32GPIOPin;
 
 #[cfg(feature = "analog")]
 use crate::esp32::esp_idf_svc::hal::adc::{
@@ -61,6 +63,7 @@ pub struct EspBoard {
     pins: Vec<Esp32GPIOPin>,
     #[cfg(feature = "analog")]
     analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = AnalogError>>>>,
+    #[cfg(feature = "i2c")]
     i2cs: HashMap<String, I2cHandleType>,
 }
 
@@ -69,12 +72,14 @@ impl EspBoard {
         pins: Vec<Esp32GPIOPin>,
         #[cfg(feature = "analog")]
         analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = AnalogError>>>>,
+        #[cfg(feature = "i2c")]
         i2cs: HashMap<String, I2cHandleType>,
     ) -> Self {
         EspBoard {
             pins,
             #[cfg(feature = "analog")]
             analogs,
+            #[cfg(feature = "i2c")]
             i2cs,
         }
     }
@@ -207,36 +212,35 @@ impl EspBoard {
         } else {
             vec![]
         };
-        let (mut pins, i2c_confs) = {
-            let pins = if let Ok(pins) = cfg.get_attribute::<Vec<i32>>("pins") {
-                pins.iter()
-                    .filter_map(|pin| {
-                        let p = Esp32GPIOPin::new(*pin, None);
-                        if let Ok(p) = p {
-                            Some(p)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect()
-            } else {
-                vec![]
-            };
-
+        let mut pins = if let Ok(pins) = cfg.get_attribute::<Vec<i32>>("pins") {
+            pins.iter()
+                .filter_map(|pin| {
+                    let p = Esp32GPIOPin::new(*pin, None);
+                    if let Ok(p) = p {
+                        Some(p)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            vec![]
+        };
+        #[cfg(feature = "i2c")]
+        {
             let i2c_confs = if let Ok(i2c_confs) = cfg.get_attribute::<Vec<Esp32I2cConfig>>("i2cs")
             {
                 i2c_confs
             } else {
                 vec![]
             };
-            (pins, i2c_confs)
-        };
-        let mut i2cs = HashMap::new();
-        for conf in i2c_confs.iter() {
-            let name = conf.name.to_string();
-            let i2c = Esp32I2C::new_from_config(conf)?;
-            let i2c_wrapped: I2cHandleType = Arc::new(Mutex::new(i2c));
-            i2cs.insert(name.to_string(), i2c_wrapped);
+            let mut i2cs = HashMap::new();
+            for conf in i2c_confs.iter() {
+                let name = conf.name.to_string();
+                let i2c = Esp32I2C::new_from_config(conf)?;
+                let i2c_wrapped: I2cHandleType = Arc::new(Mutex::new(i2c));
+                i2cs.insert(name.to_string(), i2c_wrapped);
+            }
         }
         if let Ok(interrupt_confs) =
             cfg.get_attribute::<Vec<DigitalInterruptConfig>>("digital_interrupts")
@@ -258,6 +262,7 @@ impl EspBoard {
             pins,
             #[cfg(feature = "analog")]
             analogs,
+            #[cfg(feature = "i2c")]
             i2cs,
         })))
     }
@@ -385,6 +390,7 @@ impl Board for EspBoard {
             crate::esp32::esp_idf_svc::sys::esp_deep_sleep_start();
         }
     }
+    #[cfg(feature = "i2c")]
     fn get_i2c_by_name(&self, name: String) -> Result<I2cHandleType, BoardError> {
         match self.i2cs.get(&name) {
             Some(i2c_handle) => Ok(Arc::clone(i2c_handle)),

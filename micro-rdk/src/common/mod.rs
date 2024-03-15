@@ -38,6 +38,7 @@ pub mod entry;
 pub mod generic;
 pub mod grpc;
 pub mod grpc_client;
+#[cfg(feature = "i2c")]
 pub mod i2c;
 pub mod log;
 pub mod math_utils;
