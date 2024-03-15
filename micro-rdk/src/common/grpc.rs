@@ -291,15 +291,19 @@ where
             "/viam.component.encoder.v1.EncoderService/DoCommand" => {
                 self.encoder_do_command(payload)
             }
+            #[cfg(feature = "power_sensor")]
             "/viam.component.powersensor.v1.PowerSensorService/GetVoltage" => {
                 self.power_sensor_get_voltage(payload)
             }
+            #[cfg(feature = "power_sensor")]
             "/viam.component.powersensor.v1.PowerSensorService/GetCurrent" => {
                 self.power_sensor_get_current(payload)
             }
+            #[cfg(feature = "power_sensor")]
             "/viam.component.powersensor.v1.PowerSensorService/GetPower" => {
                 self.power_sensor_get_power(payload)
             }
+            #[cfg(feature = "power_sensor")]
             "/viam.component.powersensor.v1.PowerSensorService/DoCommand" => {
                 self.power_sensor_do_command(payload)
             }
@@ -1102,6 +1106,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "power_sensor")]
     fn power_sensor_get_voltage(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::power_sensor::v1::GetVoltageRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -1123,6 +1128,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "power_sensor")]
     fn power_sensor_get_current(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::power_sensor::v1::GetCurrentRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -1144,6 +1150,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "power_sensor")]
     fn power_sensor_get_power(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::power_sensor::v1::GetPowerRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -1166,6 +1173,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "power_sensor")]
     fn power_sensor_do_command(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = proto::common::v1::DoCommandRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;

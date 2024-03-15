@@ -10,13 +10,15 @@ use super::{
     generic::GenericComponentType,
     motor::MotorType,
     movement_sensor::MovementSensorType,
-    power_sensor::PowerSensorType,
     robot::Resource,
     sensor::SensorType,
 };
 
 #[cfg(feature = "servo")]
 use crate::components::servo::ServoType;
+
+#[cfg(feature = "power_sensor")]
+use crate::components::power_sensor::PowerSensorType;
 
 use crate::proto::common::v1::ResourceName;
 
@@ -61,7 +63,8 @@ impl ResourceKey {
             "base" => crate::common::base::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
-            "power_sensor" => crate::common::power_sensor::COMPONENT_NAME,
+            #[cfg(feature = "power_sensor")]
+            "power_sensor" => crate::component::power_sensor::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
             &_ => {
                 anyhow::bail!("component type {} is not supported yet", model.to_string());
@@ -83,7 +86,8 @@ impl TryFrom<ResourceName> for ResourceKey {
             "base" => crate::common::base::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
-            "power_sensor" => crate::common::power_sensor::COMPONENT_NAME,
+            #[cfg(feature = "power_sensor")]
+            "power_sensor" => crate::component::power_sensor::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
             _ => {
                 anyhow::bail!("component type {} is not supported yet", comp_type);
@@ -118,6 +122,7 @@ type BaseConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<Bas
 /// Fn that returns a `ServoType`, `Arc<Mutex<dyn Servo>>`
 type ServoConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<ServoType>;
 
+#[cfg(feature = "power_sensor")]
 /// Fn that returns a `PowerSensorType`, `Arc<Mutex<dyn PowerSensor>>`
 type PowerSensorConstructor =
     dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<PowerSensorType>;
@@ -137,6 +142,7 @@ pub struct ComponentRegistry {
     bases: Map<&'static str, &'static BaseConstructor>,
     #[cfg(feature = "servo")]
     servos: Map<&'static str, &'static ServoConstructor>,
+    #[cfg(feature = "power_sensor")]
     power_sensors: Map<&'static str, &'static PowerSensorConstructor>,
     generic_components: Map<&'static str, &'static GenericComponentConstructor>,
     dependencies: Map<&'static str, Map<&'static str, &'static DependenciesFromConfig>>,
@@ -154,6 +160,7 @@ impl Default for ComponentRegistry {
             crate::builtin::gpio_servo::register_models(&mut r);
             crate::builtin::mpu6050::register_models(&mut r);
             crate::builtin::adxl345::register_models(&mut r);
+            #[cfg(feature = "power_sensor")]
             crate::builtin::ina::register_models(&mut r);
             crate::builtin::wheeled_base::register_models(&mut r);
         }
@@ -180,8 +187,10 @@ impl ComponentRegistry {
         dependency_func_map.insert(crate::common::encoder::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::base::COMPONENT_NAME, Map::new());
+        #[cfg(feature = "servo")]
         dependency_func_map.insert(crate::components::servo::COMPONENT_NAME, Map::new());
-        dependency_func_map.insert(crate::common::power_sensor::COMPONENT_NAME, Map::new());
+        #[cfg(feature = "power_sensor")]
+        dependency_func_map.insert(crate::component::power_sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::generic::COMPONENT_NAME, Map::new());
         Self {
             motors: Map::new(),
@@ -192,6 +201,7 @@ impl ComponentRegistry {
             bases: Map::new(),
             #[cfg(feature = "servo")]
             servos: Map::new(),
+            #[cfg(feature = "power_sensor")]
             power_sensors: Map::new(),
             generic_components: Map::new(),
             dependencies: dependency_func_map,
@@ -269,6 +279,7 @@ impl ComponentRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "power_sensor")]
     pub fn register_power_sensor(
         &mut self,
         model: &'static str,
@@ -411,6 +422,7 @@ impl ComponentRegistry {
         Err(RegistryError::ModelNotFound(model))
     }
 
+    #[cfg(feature = "power_sensor")]
     pub(crate) fn get_power_sensor_constructor(
         &self,
         model: String,

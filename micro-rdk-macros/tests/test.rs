@@ -2,7 +2,7 @@ use micro_rdk::common::math_utils::Vector3;
 use micro_rdk::common::movement_sensor::{
     GeoPosition, MovementSensor, MovementSensorSupportedMethods,
 };
-use micro_rdk::common::power_sensor::{Current, PowerSensor, PowerSupplyType, Voltage};
+use micro_rdk::component::power_sensor::{Current, PowerSensor, PowerSupplyType, Voltage};
 use micro_rdk::common::sensor::Readings;
 use micro_rdk::common::status::Status;
 use micro_rdk::google::protobuf::value::Kind;

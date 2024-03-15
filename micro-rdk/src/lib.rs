@@ -123,6 +123,7 @@ pub mod proto {
             }
         }
 
+        #[cfg(feature = "servo")]
         pub mod servo {
             pub mod v1 {
                 #![allow(clippy::derive_partial_eq_without_eq)]
@@ -130,6 +131,7 @@ pub mod proto {
             }
         }
 
+        #[cfg(feature = "power_sensor")]
         pub mod power_sensor {
             pub mod v1 {
                 #![allow(clippy::derive_partial_eq_without_eq)]

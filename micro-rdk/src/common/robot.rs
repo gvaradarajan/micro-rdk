@@ -35,7 +35,6 @@ use super::{
     generic::{GenericComponent, GenericComponentType},
     motor::MotorType,
     movement_sensor::MovementSensorType,
-    power_sensor::{PowerSensor, PowerSensorType},
     registry::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
@@ -44,6 +43,9 @@ use super::{
 
 #[cfg(feature = "servo")]
 use crate::components::servo::{Servo, ServoType};
+
+#[cfg(feature = "power_sensor")]
+use crate::components::power_sensor::{PowerSensor, PowerSensorType};
 
 use thiserror::Error;
 
@@ -57,6 +59,7 @@ pub enum ResourceType {
     Sensor(SensorType),
     MovementSensor(MovementSensorType),
     Encoder(EncoderType),
+    #[cfg(feature = "power_sensor")]
     PowerSensor(PowerSensorType),
     #[cfg(feature = "servo")]
     Servo(ServoType),
@@ -251,7 +254,8 @@ impl LocalRobot {
             "movement_sensor" => crate::common::movement_sensor::COMPONENT_NAME,
             "sensor" => crate::common::sensor::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
-            "power_sensor" => crate::common::power_sensor::COMPONENT_NAME,
+            #[cfg(feature = "power_sensor")]
+            "power_sensor" => crate::component::power_sensor::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
@@ -339,6 +343,7 @@ impl LocalRobot {
                     .map_err(RobotError::RobotRegistryError)?;
                 ResourceType::Base(ctor(cfg, deps).map_err(RobotError::RobotResourceBuildError)?)
             }
+            #[cfg(feature = "power_sensor")]
             "power_sensor" => {
                 let ctor = registry
                     .get_power_sensor_constructor(model)
@@ -430,6 +435,7 @@ impl LocalRobot {
                             status,
                         });
                     }
+                    #[cfg(feature = "power_sensor")]
                     ResourceType::PowerSensor(b) => {
                         let status = b.get_status()?;
                         vec.push(robot::v1::Status {
@@ -515,6 +521,7 @@ impl LocalRobot {
                                 status,
                             });
                         }
+                        #[cfg(feature = "power_sensor")]
                         ResourceType::PowerSensor(b) => {
                             let status = b.get_status()?;
                             vec.push(robot::v1::Status {
@@ -654,6 +661,7 @@ impl LocalRobot {
         }
     }
 
+    #[cfg(feature = "power_sensor")]
     pub fn get_power_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn PowerSensor>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),

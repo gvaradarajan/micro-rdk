@@ -44,7 +44,6 @@ pub mod log;
 pub mod math_utils;
 pub mod motor;
 pub mod movement_sensor;
-pub mod power_sensor;
 pub mod registry;
 pub mod robot;
 pub mod sensor;

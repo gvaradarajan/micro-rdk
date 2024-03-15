@@ -119,7 +119,7 @@ pub fn impl_readings_for_power_sensor(input: TokenStream) -> TokenStream {
     let gen = quote! {
         impl #impl_generics #crate_ident::common::sensor::Readings for #name #ty_generics #where_clause {
             fn get_generic_readings(&mut self) -> anyhow::Result<#crate_ident::common::sensor::GenericReadingsResult> {
-                #crate_ident::common::power_sensor::get_power_sensor_generic_readings(self)
+                #crate_ident::component::power_sensor::get_power_sensor_generic_readings(self)
             }
         }
     };

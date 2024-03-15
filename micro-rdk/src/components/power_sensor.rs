@@ -5,11 +5,12 @@ use crate::{
     proto::component,
 };
 
-use super::{
+use crate::common::{
     generic::DoCommand,
-    sensor::{GenericReadingsResult, Readings},
     status::Status,
 };
+
+use crate::common::sensor::{GenericReadingsResult, Readings};
 
 pub static COMPONENT_NAME: &str = "power_sensor";
 

@@ -5,6 +5,7 @@ pub mod fake;
 pub mod gpio_motor;
 #[cfg(feature = "servo")]
 pub mod gpio_servo;
+#[cfg(feature = "power_sensor")]
 pub mod ina;
 pub mod moisture_sensor;
 pub mod mpu6050;
