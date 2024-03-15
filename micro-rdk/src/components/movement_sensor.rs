@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use crate::common::generic::DoCommand;
 use crate::common::math_utils::Vector3;
-use crate::common::sensor::{GenericReadingsResult, Readings};
+use crate::components::sensor::{GenericReadingsResult, Readings};
 use crate::common::status::Status;
 use crate::google;
 use crate::google::protobuf::{value::Kind, Struct, Value};

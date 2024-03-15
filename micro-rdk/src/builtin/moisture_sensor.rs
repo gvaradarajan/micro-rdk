@@ -1,10 +1,10 @@
 use crate::common::analog::AnalogReader;
-use crate::common::sensor::GenericReadingsResult;
-use crate::common::sensor::Sensor;
-use crate::common::sensor::SensorResult;
-use crate::common::sensor::SensorT;
-use crate::common::sensor::Readings;
-use crate::common::sensor::TypedReadingsResult;
+use crate::components::sensor::GenericReadingsResult;
+use crate::components::sensor::Sensor;
+use crate::components::sensor::SensorResult;
+use crate::components::sensor::SensorT;
+use crate::components::sensor::Readings;
+use crate::components::sensor::TypedReadingsResult;
 use crate::common::status::Status;
 use crate::google;
 use std::cell::RefCell;

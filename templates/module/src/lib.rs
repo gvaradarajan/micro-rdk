@@ -13,7 +13,7 @@ use micro_rdk::components::movement_sensor::{MovementSensor, MovementSensorType}
 use micro_rdk::PowerSensorReadings;
 use micro_rdk::component::power_sensor::{PowerSensor, PowerSensorType};
 {% elsif starting_component == "Sensor" %}
-use micro_rdk::common::sensor::{Sensor, SensorType, Readings};
+use micro_rdk::components::sensor::{Sensor, SensorType, Readings};
 {% elsif starting_component == "Servo" %}
 use micro_rdk::common::{actuator::Actuator, servo::{Servo, ServoType}};
 {% elsif starting_component == "GenericComponent" %}

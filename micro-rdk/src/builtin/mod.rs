@@ -8,10 +8,11 @@ pub mod gpio_motor;
 pub mod gpio_servo;
 #[cfg(feature = "power_sensor")]
 pub mod ina;
+#[cfg(feature = "sensor")]
 pub mod moisture_sensor;
 #[cfg(feature = "movement_sensor")]
 pub mod mpu6050;
-#[cfg(feature = "esp32")]
+#[cfg(all(feature = "esp32", feature = "sensor"))]
 pub mod hcsr04;
 pub mod single_encoded_motor;
 #[cfg(feature = "esp32")]

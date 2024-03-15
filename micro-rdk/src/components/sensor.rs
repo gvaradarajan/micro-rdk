@@ -5,7 +5,7 @@ use crate::google;
 
 use std::sync::{Arc, Mutex};
 
-use super::generic::DoCommand;
+use crate::common::generic::DoCommand;
 
 pub static COMPONENT_NAME: &str = "sensor";
 

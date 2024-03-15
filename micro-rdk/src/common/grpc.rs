@@ -248,9 +248,11 @@ where
             "/viam.robot.v1.RobotService/GetStatus" => self.robot_status(payload),
             "/viam.robot.v1.RobotService/GetOperations" => self.robot_get_oprations(payload),
             "/proto.rpc.v1.AuthService/Authenticate" => self.auth_service_authentificate(payload),
+            #[cfg(feature = "sensor")]
             "/viam.component.sensor.v1.SensorService/GetReadings" => {
                 self.sensor_get_readings(payload)
             }
+            #[cfg(feature = "sensor")]
             "/viam.component.sensor.v1.SensorService/DoCommand" => self.sensor_do_command(payload),
             #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetPosition" => {
@@ -794,6 +796,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "sensor")]
     fn sensor_get_readings(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = proto::common::v1::GetReadingsRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -811,6 +814,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "sensor")]
     fn sensor_do_command(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = proto::common::v1::DoCommandRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;

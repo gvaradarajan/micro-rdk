@@ -10,7 +10,7 @@ use crate::common::{
     status::Status,
 };
 
-use crate::common::sensor::{GenericReadingsResult, Readings};
+use crate::components::sensor::{GenericReadingsResult, Readings};
 
 pub static COMPONENT_NAME: &str = "power_sensor";
 

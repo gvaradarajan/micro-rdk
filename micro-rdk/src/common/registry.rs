@@ -10,7 +10,6 @@ use super::{
     generic::GenericComponentType,
     motor::MotorType,
     robot::Resource,
-    sensor::SensorType,
 };
 
 #[cfg(feature = "movement_sensor")]
@@ -21,6 +20,9 @@ use crate::components::servo::ServoType;
 
 #[cfg(feature = "power_sensor")]
 use crate::components::power_sensor::PowerSensorType;
+
+#[cfg(feature = "sensor")]
+use crate::components::sensor::SensorType;
 
 use crate::proto::common::v1::ResourceName;
 
@@ -62,7 +64,8 @@ impl ResourceKey {
             "encoder" => crate::common::encoder::COMPONENT_NAME,
             #[cfg(feature = "movement_sensor")]
             "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
-            "sensor" => crate::common::sensor::COMPONENT_NAME,
+            #[cfg(feature = "sensor")]
+            "sensor" => crate::components::sensor::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
@@ -83,7 +86,8 @@ impl TryFrom<ResourceName> for ResourceKey {
         let comp_type: &str = &value.subtype;
         let comp_name = match comp_type {
             "motor" => crate::common::motor::COMPONENT_NAME,
-            "sensor" => crate::common::sensor::COMPONENT_NAME,
+            #[cfg(feature = "sensor")]
+            "sensor" => crate::components::sensor::COMPONENT_NAME,
             #[cfg(feature = "movement_sensor")]
             "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
             "encoder" => crate::common::encoder::COMPONENT_NAME,
@@ -109,6 +113,7 @@ type BoardConstructor = dyn Fn(ConfigType) -> Result<BoardType, BoardError>;
 /// Fn that returns a `MotorType`, `Arc<Mutex<dyn Motor>>`
 type MotorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<MotorType>;
 
+#[cfg(feature = "sensor")]
 /// Fn that returns a `SensorType`, `Arc<Mutex<dyn Sensor>>`
 type SensorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<SensorType>;
 
@@ -141,6 +146,7 @@ type DependenciesFromConfig = dyn Fn(ConfigType) -> Vec<ResourceKey>;
 pub struct ComponentRegistry {
     motors: Map<&'static str, &'static MotorConstructor>,
     board: Map<&'static str, &'static BoardConstructor>,
+    #[cfg(feature = "sensor")]
     sensor: Map<&'static str, &'static SensorConstructor>,
     #[cfg(feature = "movement_sensor")]
     movement_sensors: Map<&'static str, &'static MovementSensorConstructor>,
@@ -194,7 +200,8 @@ impl ComponentRegistry {
         #[cfg(feature = "movement_sensor")]
         dependency_func_map.insert(crate::components::movement_sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::encoder::COMPONENT_NAME, Map::new());
-        dependency_func_map.insert(crate::common::sensor::COMPONENT_NAME, Map::new());
+        #[cfg(feature = "sensor")]
+        dependency_func_map.insert(crate::components::sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::base::COMPONENT_NAME, Map::new());
         #[cfg(feature = "servo")]
         dependency_func_map.insert(crate::components::servo::COMPONENT_NAME, Map::new());
@@ -204,6 +211,7 @@ impl ComponentRegistry {
         Self {
             motors: Map::new(),
             board: Map::new(),
+            #[cfg(feature = "sensor")]
             sensor: Map::new(),
             #[cfg(feature = "movement_sensor")]
             movement_sensors: Map::new(),
@@ -229,6 +237,7 @@ impl ComponentRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "sensor")]
     pub fn register_sensor(
         &mut self,
         model: &'static str,
@@ -389,6 +398,7 @@ impl ComponentRegistry {
         Err(RegistryError::ModelNotFound(model))
     }
 
+    #[cfg(feature = "sensor")]
     pub(crate) fn get_sensor_constructor(
         &self,
         model: String,
@@ -469,7 +479,8 @@ impl ComponentRegistry {
         Err(RegistryError::ModelNotFound(model))
     }
 }
-#[cfg(test)]
+
+#[cfg(all(test, feature = "sensor"))]
 mod tests {
     use crate::common::generic::DoCommand;
     use crate::google;

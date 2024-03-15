@@ -22,7 +22,7 @@ use crate::common::motor::{
     COMPONENT_NAME as MotorCompName,
 };
 use crate::components::movement_sensor::{MovementSensor, MovementSensorSupportedMethods, MovementSensorType, GeoPosition};
-use crate::common::sensor::{Sensor, SensorT, SensorType, Readings, GenericReadingsResult, SensorResult, TypedReadingsResult};
+use crate::components::sensor::{Sensor, SensorT, SensorType, Readings, GenericReadingsResult, SensorResult, TypedReadingsResult};
 
 use log::*;
 

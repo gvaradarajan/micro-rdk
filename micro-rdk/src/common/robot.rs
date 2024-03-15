@@ -15,7 +15,6 @@ use crate::{
     common::board::Board,
     common::encoder::Encoder,
     common::motor::Motor,
-    common::sensor::Sensor,
     common::status::Status,
     google,
     proto::{
@@ -36,11 +35,13 @@ use super::{
     registry::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
-    sensor::SensorType,
 };
 
 #[cfg(feature = "movement_sensor")]
 use crate::components::movement_sensor::{MovementSensor, MovementSensorType};
+
+#[cfg(feature = "sensor")]
+use crate::components::sensor::{Sensor, SensorType};
 
 #[cfg(feature = "servo")]
 use crate::components::servo::{Servo, ServoType};
@@ -57,6 +58,7 @@ pub enum ResourceType {
     Motor(MotorType),
     Board(BoardType),
     Base(BaseType),
+    #[cfg(feature = "sensor")]
     Sensor(SensorType),
     #[cfg(feature = "movement_sensor")]
     MovementSensor(MovementSensorType),
@@ -255,7 +257,8 @@ impl LocalRobot {
             "encoder" => crate::common::encoder::COMPONENT_NAME,
             #[cfg(feature = "movement_sensor")]
             "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
-            "sensor" => crate::common::sensor::COMPONENT_NAME,
+            #[cfg(feature = "sensor")]
+            "sensor" => crate::components::sensor::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
             #[cfg(feature = "power_sensor")]
             "power_sensor" => crate::components::power_sensor::COMPONENT_NAME,
@@ -320,6 +323,7 @@ impl LocalRobot {
                     None => return Ok(()),
                 })
             }
+            #[cfg(feature = "sensor")]
             "sensor" => {
                 let ctor = registry
                     .get_sensor_constructor(model)
@@ -415,6 +419,7 @@ impl LocalRobot {
                             status,
                         });
                     }
+                    #[cfg(feature = "sensor")]
                     ResourceType::Sensor(b) => {
                         let status = b.get_status()?;
                         vec.push(robot::v1::Status {
@@ -502,6 +507,7 @@ impl LocalRobot {
                                 status,
                             });
                         }
+                        #[cfg(feature = "sensor")]
                         ResourceType::Sensor(b) => {
                             let status = b.get_status()?;
                             vec.push(robot::v1::Status {
@@ -622,6 +628,7 @@ impl LocalRobot {
             None => None,
         }
     }
+    #[cfg(feature = "sensor")]
     pub fn get_sensor_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Sensor>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
@@ -757,9 +764,11 @@ mod tests {
     use crate::common::encoder::{Encoder, EncoderPositionType};
     use crate::common::i2c::I2CHandle;
     use crate::common::motor::Motor;
+    #[cfg(feature = "movement_sensor")]
     use crate::components::movement_sensor::MovementSensor;
     use crate::common::robot::LocalRobot;
-    use crate::common::sensor::Readings;
+    #[cfg(feature = "sensor")]
+    use crate::components::sensor::Readings;
     use crate::google;
     use crate::google::protobuf::Struct;
     use crate::proto::app::v1::{ComponentConfig, ConfigResponse, RobotConfig};
@@ -826,6 +835,7 @@ mod tests {
                     ),
                 ])),
             }),
+            #[cfg(feature = "sensor")]
             Some(DynamicComponentConfig {
                 name: "sensor".to_owned(),
                 namespace: "rdk".to_owned(),
@@ -836,6 +846,7 @@ mod tests {
                     Kind::StringValue("11.12".to_owned()),
                 )])),
             }),
+            #[cfg(feature = "movement_sensor")]
             Some(DynamicComponentConfig {
                 name: "m_sensor".to_owned(),
                 namespace: "rdk".to_owned(),
@@ -951,59 +962,65 @@ mod tests {
             .is_ok());
         assert!(buffer_2.iter().zip(init_bytes.iter()).all(|(a, b)| a == b));
 
-        let sensor = robot.get_sensor_by_name("sensor".to_string());
+        #[cfg(feature = "sensor")]
+        {
+            let sensor = robot.get_sensor_by_name("sensor".to_string());
 
-        assert!(sensor.is_some());
+            assert!(sensor.is_some());
 
-        let value = sensor.unwrap().get_generic_readings();
+            let value = sensor.unwrap().get_generic_readings();
 
-        assert!(value.is_ok());
+            assert!(value.is_ok());
 
-        assert!(value.as_ref().unwrap().contains_key("fake_sensor"));
+            assert!(value.as_ref().unwrap().contains_key("fake_sensor"));
 
-        let value = value
-            .as_ref()
-            .unwrap()
-            .get("fake_sensor")
-            .unwrap()
-            .kind
-            .clone();
+            let value = value
+                .as_ref()
+                .unwrap()
+                .get("fake_sensor")
+                .unwrap()
+                .kind
+                .clone();
 
-        assert!(value.is_some());
+            assert!(value.is_some());
 
-        let value = match value {
-            Some(google::protobuf::value::Kind::NumberValue(a)) => Some(a),
-            _ => None,
-        };
+            let value = match value {
+                Some(google::protobuf::value::Kind::NumberValue(a)) => Some(a),
+                _ => None,
+            };
 
-        assert!(value.is_some());
+            assert!(value.is_some());
 
-        assert_eq!(value.unwrap(), 11.12);
+            assert_eq!(value.unwrap(), 11.12);
+        }
 
-        let m_sensor = robot.get_movement_sensor_by_name("m_sensor".to_string());
+        #[cfg(feature = "movement_sensor")]
+        {
+            let m_sensor = robot.get_movement_sensor_by_name("m_sensor".to_string());
 
-        assert!(m_sensor.is_some());
+            assert!(m_sensor.is_some());
 
-        let m_sensor_pos = m_sensor.unwrap().get_position();
+            let m_sensor_pos = m_sensor.unwrap().get_position();
 
-        assert!(m_sensor_pos.is_ok());
+            assert!(m_sensor_pos.is_ok());
 
-        let unwrapped_pos = m_sensor_pos.unwrap();
+            let unwrapped_pos = m_sensor_pos.unwrap();
 
-        assert_eq!(unwrapped_pos.lat, 68.86);
-        assert_eq!(unwrapped_pos.lon, -85.44);
-        assert_eq!(unwrapped_pos.alt, 3000.1);
+            assert_eq!(unwrapped_pos.lat, 68.86);
+            assert_eq!(unwrapped_pos.lon, -85.44);
+            assert_eq!(unwrapped_pos.alt, 3000.1);
 
-        let m_sensor_2 = robot.get_movement_sensor_by_name("m_sensor".to_string());
+            let m_sensor_2 = robot.get_movement_sensor_by_name("m_sensor".to_string());
 
-        assert!(m_sensor_2.is_some());
+            assert!(m_sensor_2.is_some());
 
-        let lin_acc_result = m_sensor_2.unwrap().get_linear_acceleration();
-        assert!(lin_acc_result.is_ok());
-        let lin_acc = lin_acc_result.unwrap();
-        assert_eq!(lin_acc.x, 200.2);
-        assert_eq!(lin_acc.y, -100.3);
-        assert_eq!(lin_acc.z, 100.4);
+            let lin_acc_result = m_sensor_2.unwrap().get_linear_acceleration();
+            assert!(lin_acc_result.is_ok());
+            let lin_acc = lin_acc_result.unwrap();
+            assert_eq!(lin_acc.x, 200.2);
+            assert_eq!(lin_acc.y, -100.3);
+            assert_eq!(lin_acc.z, 100.4);
+        }
 
         let mut enc1 = robot.get_encoder_by_name("enc1".to_string());
         assert!(enc1.is_some());

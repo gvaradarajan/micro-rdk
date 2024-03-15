@@ -45,7 +45,6 @@ pub mod math_utils;
 pub mod motor;
 pub mod registry;
 pub mod robot;
-pub mod sensor;
 pub mod status;
 pub mod webrtc {
     pub mod api;
