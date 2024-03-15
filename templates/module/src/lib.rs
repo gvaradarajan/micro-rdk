@@ -8,7 +8,7 @@ use micro_rdk::common::{actuator::Actuator, motor::{Motor, MotorType}};
 use micro_rdk::common::{actuator::Actuator, base::{Base, BaseType}};
 {% elsif starting_component == "MovementSensor" %}
 use micro_rdk::MovementSensorReadings;
-use micro_rdk::common::movement_sensor::{MovementSensor, MovementSensorType};
+use micro_rdk::components::movement_sensor::{MovementSensor, MovementSensorType};
 {% elsif starting_component == "PowerSensor" %}
 use micro_rdk::PowerSensorReadings;
 use micro_rdk::component::power_sensor::{PowerSensor, PowerSensorType};

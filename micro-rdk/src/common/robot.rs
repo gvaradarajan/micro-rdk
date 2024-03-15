@@ -15,7 +15,6 @@ use crate::{
     common::board::Board,
     common::encoder::Encoder,
     common::motor::Motor,
-    common::movement_sensor::MovementSensor,
     common::sensor::Sensor,
     common::status::Status,
     google,
@@ -34,12 +33,14 @@ use super::{
     encoder::EncoderType,
     generic::{GenericComponent, GenericComponentType},
     motor::MotorType,
-    movement_sensor::MovementSensorType,
     registry::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
     sensor::SensorType,
 };
+
+#[cfg(feature = "movement_sensor")]
+use crate::components::movement_sensor::{MovementSensor, MovementSensorType};
 
 #[cfg(feature = "servo")]
 use crate::components::servo::{Servo, ServoType};
@@ -57,6 +58,7 @@ pub enum ResourceType {
     Board(BoardType),
     Base(BaseType),
     Sensor(SensorType),
+    #[cfg(feature = "movement_sensor")]
     MovementSensor(MovementSensorType),
     Encoder(EncoderType),
     #[cfg(feature = "power_sensor")]
@@ -251,11 +253,12 @@ impl LocalRobot {
             "motor" => crate::common::motor::COMPONENT_NAME,
             "board" => crate::common::board::COMPONENT_NAME,
             "encoder" => crate::common::encoder::COMPONENT_NAME,
-            "movement_sensor" => crate::common::movement_sensor::COMPONENT_NAME,
+            #[cfg(feature = "movement_sensor")]
+            "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
             "sensor" => crate::common::sensor::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
             #[cfg(feature = "power_sensor")]
-            "power_sensor" => crate::component::power_sensor::COMPONENT_NAME,
+            "power_sensor" => crate::components::power_sensor::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
@@ -323,6 +326,7 @@ impl LocalRobot {
                     .map_err(RobotError::RobotRegistryError)?;
                 ResourceType::Sensor(ctor(cfg, deps).map_err(RobotError::RobotResourceBuildError)?)
             }
+            #[cfg(feature = "movement_sensor")]
             "movement_sensor" => {
                 let ctor = registry
                     .get_movement_sensor_constructor(model)
@@ -419,6 +423,7 @@ impl LocalRobot {
                             status,
                         });
                     }
+                    #[cfg(feature = "movement_sensor")]
                     ResourceType::MovementSensor(b) => {
                         let status = b.get_status()?;
                         vec.push(robot::v1::Status {
@@ -505,6 +510,7 @@ impl LocalRobot {
                                 status,
                             });
                         }
+                        #[cfg(feature = "movement_sensor")]
                         ResourceType::MovementSensor(b) => {
                             let status = b.get_status()?;
                             vec.push(robot::v1::Status {
@@ -630,6 +636,7 @@ impl LocalRobot {
         }
     }
 
+    #[cfg(feature = "movement_sensor")]
     pub fn get_movement_sensor_by_name(
         &self,
         name: String,
@@ -750,7 +757,7 @@ mod tests {
     use crate::common::encoder::{Encoder, EncoderPositionType};
     use crate::common::i2c::I2CHandle;
     use crate::common::motor::Motor;
-    use crate::common::movement_sensor::MovementSensor;
+    use crate::components::movement_sensor::MovementSensor;
     use crate::common::robot::LocalRobot;
     use crate::common::sensor::Readings;
     use crate::google;

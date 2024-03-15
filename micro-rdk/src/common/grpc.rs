@@ -252,30 +252,39 @@ where
                 self.sensor_get_readings(payload)
             }
             "/viam.component.sensor.v1.SensorService/DoCommand" => self.sensor_do_command(payload),
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetPosition" => {
                 self.movement_sensor_get_position(payload)
             }
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetLinearVelocity" => {
                 self.movement_sensor_get_linear_velocity(payload)
             }
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetAngularVelocity" => {
                 self.movement_sensor_get_angular_velocity(payload)
             }
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetLinearAcceleration" => {
                 self.movement_sensor_get_linear_acceleration(payload)
             }
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetCompassHeading" => {
                 self.movement_sensor_get_compass_heading(payload)
             }
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetProperties" => {
                 self.movement_sensor_get_properties(payload)
             }
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetOrientation" => {
                 self.movement_sensor_get_orientation(payload)
             }
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/GetAccuracy" => {
                 self.movement_sensor_get_accuracy(payload)
             }
+            #[cfg(feature = "movement_sensor")]
             "/viam.component.movementsensor.v1.MovementSensorService/DoCommand" => {
                 self.movement_sensor_do_command(payload)
             }
@@ -818,6 +827,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_get_position(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::movement_sensor::v1::GetPositionRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -839,6 +849,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_get_linear_velocity(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::movement_sensor::v1::GetLinearVelocityRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -863,6 +874,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_get_angular_velocity(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::movement_sensor::v1::GetAngularVelocityRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -887,6 +899,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_get_linear_acceleration(
         &mut self,
         message: &[u8],
@@ -914,6 +927,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_get_compass_heading(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::movement_sensor::v1::GetCompassHeadingRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -935,6 +949,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_get_properties(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::movement_sensor::v1::GetPropertiesRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -952,14 +967,17 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_get_accuracy(&mut self, _message: &[u8]) -> Result<(), ServerError> {
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_get_orientation(&mut self, _message: &[u8]) -> Result<(), ServerError> {
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "movement_sensor")]
     fn movement_sensor_do_command(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = proto::common::v1::DoCommandRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;

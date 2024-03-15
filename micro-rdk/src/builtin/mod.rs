@@ -1,3 +1,4 @@
+#[cfg(feature = "movement_sensor")]
 pub mod adxl345;
 #[cfg(feature = "esp32")]
 pub mod esp32_encoder;
@@ -8,6 +9,7 @@ pub mod gpio_servo;
 #[cfg(feature = "power_sensor")]
 pub mod ina;
 pub mod moisture_sensor;
+#[cfg(feature = "movement_sensor")]
 pub mod mpu6050;
 #[cfg(feature = "esp32")]
 pub mod hcsr04;

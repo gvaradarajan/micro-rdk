@@ -9,10 +9,12 @@ use super::{
     encoder::EncoderType,
     generic::GenericComponentType,
     motor::MotorType,
-    movement_sensor::MovementSensorType,
     robot::Resource,
     sensor::SensorType,
 };
+
+#[cfg(feature = "movement_sensor")]
+use crate::components::movement_sensor::MovementSensorType;
 
 #[cfg(feature = "servo")]
 use crate::components::servo::ServoType;
@@ -58,13 +60,14 @@ impl ResourceKey {
             "motor" => crate::common::motor::COMPONENT_NAME,
             "board" => crate::common::board::COMPONENT_NAME,
             "encoder" => crate::common::encoder::COMPONENT_NAME,
-            "movement_sensor" => crate::common::movement_sensor::COMPONENT_NAME,
+            #[cfg(feature = "movement_sensor")]
+            "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
             "sensor" => crate::common::sensor::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
             #[cfg(feature = "power_sensor")]
-            "power_sensor" => crate::component::power_sensor::COMPONENT_NAME,
+            "power_sensor" => crate::components::power_sensor::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
             &_ => {
                 anyhow::bail!("component type {} is not supported yet", model.to_string());
@@ -81,13 +84,14 @@ impl TryFrom<ResourceName> for ResourceKey {
         let comp_name = match comp_type {
             "motor" => crate::common::motor::COMPONENT_NAME,
             "sensor" => crate::common::sensor::COMPONENT_NAME,
-            "movement_sensor" => crate::common::movement_sensor::COMPONENT_NAME,
+            #[cfg(feature = "movement_sensor")]
+            "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
             "encoder" => crate::common::encoder::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
             #[cfg(feature = "power_sensor")]
-            "power_sensor" => crate::component::power_sensor::COMPONENT_NAME,
+            "power_sensor" => crate::components::power_sensor::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
             _ => {
                 anyhow::bail!("component type {} is not supported yet", comp_type);
@@ -108,6 +112,7 @@ type MotorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<Mo
 /// Fn that returns a `SensorType`, `Arc<Mutex<dyn Sensor>>`
 type SensorConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<SensorType>;
 
+#[cfg(feature = "movement_sensor")]
 /// Fn that returns a `MovementSensorType`, `Arc<Mutex<dyn MovementSensor>>`
 type MovementSensorConstructor =
     dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<MovementSensorType>;
@@ -137,6 +142,7 @@ pub struct ComponentRegistry {
     motors: Map<&'static str, &'static MotorConstructor>,
     board: Map<&'static str, &'static BoardConstructor>,
     sensor: Map<&'static str, &'static SensorConstructor>,
+    #[cfg(feature = "movement_sensor")]
     movement_sensors: Map<&'static str, &'static MovementSensorConstructor>,
     encoders: Map<&'static str, &'static EncoderConstructor>,
     bases: Map<&'static str, &'static BaseConstructor>,
@@ -158,7 +164,9 @@ impl Default for ComponentRegistry {
             crate::builtin::gpio_motor::register_models(&mut r);
             #[cfg(feature = "servo")]
             crate::builtin::gpio_servo::register_models(&mut r);
+            #[cfg(feature = "movement_sensor")]
             crate::builtin::mpu6050::register_models(&mut r);
+            #[cfg(feature = "movement_sensor")]
             crate::builtin::adxl345::register_models(&mut r);
             #[cfg(feature = "power_sensor")]
             crate::builtin::ina::register_models(&mut r);
@@ -183,19 +191,21 @@ impl ComponentRegistry {
     pub fn new() -> Self {
         let mut dependency_func_map = Map::new();
         dependency_func_map.insert(crate::common::motor::COMPONENT_NAME, Map::new());
-        dependency_func_map.insert(crate::common::movement_sensor::COMPONENT_NAME, Map::new());
+        #[cfg(feature = "movement_sensor")]
+        dependency_func_map.insert(crate::components::movement_sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::encoder::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::base::COMPONENT_NAME, Map::new());
         #[cfg(feature = "servo")]
         dependency_func_map.insert(crate::components::servo::COMPONENT_NAME, Map::new());
         #[cfg(feature = "power_sensor")]
-        dependency_func_map.insert(crate::component::power_sensor::COMPONENT_NAME, Map::new());
+        dependency_func_map.insert(crate::components::power_sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::generic::COMPONENT_NAME, Map::new());
         Self {
             motors: Map::new(),
             board: Map::new(),
             sensor: Map::new(),
+            #[cfg(feature = "movement_sensor")]
             movement_sensors: Map::new(),
             encoders: Map::new(),
             bases: Map::new(),
@@ -231,6 +241,7 @@ impl ComponentRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "movement_sensor")]
     pub fn register_movement_sensor(
         &mut self,
         model: &'static str,
@@ -389,6 +400,7 @@ impl ComponentRegistry {
         Err(RegistryError::ModelNotFound(model))
     }
 
+    #[cfg(feature = "movement_sensor")]
     pub(crate) fn get_movement_sensor_constructor(
         &self,
         model: String,

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use super::generic::DoCommand;
-use super::math_utils::Vector3;
-use super::sensor::{GenericReadingsResult, Readings};
-use super::status::Status;
+use crate::common::generic::DoCommand;
+use crate::common::math_utils::Vector3;
+use crate::common::sensor::{GenericReadingsResult, Readings};
+use crate::common::status::Status;
 use crate::google;
 use crate::google::protobuf::{value::Kind, Struct, Value};
 use crate::proto::common::v1::GeoPoint;

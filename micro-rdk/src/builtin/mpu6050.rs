@@ -21,7 +21,7 @@ use crate::common::board::Board;
 use crate::common::config::ConfigType;
 use crate::common::i2c::{I2CHandle, I2cHandleType};
 use crate::common::math_utils::Vector3;
-use crate::common::movement_sensor::{MovementSensor, MovementSensorSupportedMethods, MovementSensorType};
+use crate::components::movement_sensor::{MovementSensor, MovementSensorSupportedMethods, MovementSensorType};
 use crate::common::registry::{get_board_from_dependencies, ComponentRegistry, Dependency};
 use crate::common::status::Status;
 
@@ -168,7 +168,7 @@ impl MovementSensor for MPU6050 {
         Ok(get_linear_acceleration_from_reading(&result))
     }
 
-    fn get_position(&mut self) -> anyhow::Result<crate::common::movement_sensor::GeoPosition> {
+    fn get_position(&mut self) -> anyhow::Result<crate::components::movement_sensor::GeoPosition> {
         anyhow::bail!("unimplemented: movement_sensor_get_position")
     }
 

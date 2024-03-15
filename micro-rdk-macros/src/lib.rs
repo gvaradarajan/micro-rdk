@@ -42,7 +42,7 @@
 //!     fn get_linear_velocity(&mut self) -> anyhow::Result<micro_rdk::common::math_utils::Vector3> {
 //!         anyhow::bail!("unimplemented")
 //!     }
-//!     fn get_position(&mut self) -> anyhow::Result<micro_rdk::common::movement_sensor::GeoPosition> {
+//!     fn get_position(&mut self) -> anyhow::Result<micro_rdk::components::movement_sensor::GeoPosition> {
 //!         anyhow::bail!("unimplemented")
 //!     }
 //!     fn get_properties(&self) -> MovementSensorSupportedMethods {
@@ -102,7 +102,7 @@ pub fn impl_readings_for_movement_sensor(input: TokenStream) -> TokenStream {
     let gen = quote! {
         impl #impl_generics #crate_ident::common::sensor::Readings for #name #ty_generics #where_clause {
             fn get_generic_readings(&mut self) -> anyhow::Result<#crate_ident::common::sensor::GenericReadingsResult> {
-                #crate_ident::common::movement_sensor::get_movement_sensor_generic_readings(self)
+                #crate_ident::components::movement_sensor::get_movement_sensor_generic_readings(self)
             }
         }
     };

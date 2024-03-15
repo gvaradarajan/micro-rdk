@@ -1,3 +1,4 @@
+pub mod movement_sensor;
 #[cfg(feature = "power_sensor")]
 pub mod power_sensor;
 #[cfg(feature = "servo")]

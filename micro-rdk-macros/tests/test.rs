@@ -1,5 +1,5 @@
 use micro_rdk::common::math_utils::Vector3;
-use micro_rdk::common::movement_sensor::{
+use micro_rdk::components::movement_sensor::{
     GeoPosition, MovementSensor, MovementSensorSupportedMethods,
 };
 use micro_rdk::component::power_sensor::{Current, PowerSensor, PowerSupplyType, Voltage};

@@ -21,7 +21,7 @@ use crate::common::motor::{
     Motor, MotorPinType, MotorPinsConfig, MotorSupportedProperties, MotorType,
     COMPONENT_NAME as MotorCompName,
 };
-use crate::common::movement_sensor::{MovementSensor, MovementSensorSupportedMethods, MovementSensorType, GeoPosition};
+use crate::components::movement_sensor::{MovementSensor, MovementSensorSupportedMethods, MovementSensorType, GeoPosition};
 use crate::common::sensor::{Sensor, SensorT, SensorType, Readings, GenericReadingsResult, SensorResult, TypedReadingsResult};
 
 use log::*;
