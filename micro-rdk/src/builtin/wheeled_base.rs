@@ -1,5 +1,5 @@
 use crate::common::actuator::Actuator;
-use crate::common::base::{Base, BaseType, COMPONENT_NAME as BaseCompName};
+use crate::components::base::{Base, BaseType, COMPONENT_NAME as BaseCompName};
 use crate::common::config::ConfigType;
 use crate::components::motor::{Motor, MotorType, COMPONENT_NAME as MotorCompName};
 use crate::common::registry::{ComponentRegistry, Dependency, ResourceKey};

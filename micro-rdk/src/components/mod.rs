@@ -1,3 +1,5 @@
+#[cfg(feature = "base")]
+pub mod base;
 #[cfg(feature = "encoder")]
 pub mod encoder;
 #[cfg(feature = "motor")]

@@ -19,4 +19,5 @@ pub mod hcsr04;
 pub mod single_encoded_motor;
 #[cfg(all(feature = "esp32", feature = "encoder"))]
 pub mod single_encoder;
+#[cfg(all(feature = "base", feature = "motor"))]
 pub mod wheeled_base;

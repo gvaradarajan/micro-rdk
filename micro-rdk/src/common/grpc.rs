@@ -186,11 +186,17 @@ where
 
     pub(crate) fn handle_request(&mut self, path: &str, payload: &[u8]) -> Result<(), ServerError> {
         match path {
+            #[cfg(feature = "base")]
             "/viam.component.base.v1.BaseService/SetPower" => self.base_set_power(payload),
+            #[cfg(feature = "base")]
             "/viam.component.base.v1.BaseService/Stop" => self.base_stop(payload),
+            #[cfg(feature = "base")]
             "/viam.component.base.v1.BaseService/MoveStraight" => self.base_move_straight(payload),
+            #[cfg(feature = "base")]
             "/viam.component.base.v1.BaseService/Spin" => self.base_spin(payload),
+            #[cfg(feature = "base")]
             "/viam.component.base.v1.BaseService/SetVelocity" => self.base_set_velocity(payload),
+            #[cfg(feature = "base")]
             "/viam.component.base.v1.BaseService/IsMoving" => self.base_is_moving(payload),
             "/viam.component.board.v1.BoardService/GetDigitalInterruptValue" => {
                 self.board_get_digital_interrupt_value(payload)
@@ -1027,18 +1033,22 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "base")]
     fn base_move_straight(&mut self, _message: &[u8]) -> Result<(), ServerError> {
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "base")]
     fn base_spin(&mut self, _message: &[u8]) -> Result<(), ServerError> {
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "base")]
     fn base_set_velocity(&mut self, _: &[u8]) -> Result<(), ServerError> {
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "base")]
     fn base_is_moving(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::base::v1::IsMovingRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -1056,6 +1066,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "base")]
     fn base_set_power(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::base::v1::SetPowerRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -1074,6 +1085,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "base")]
     fn base_stop(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::base::v1::StopRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;

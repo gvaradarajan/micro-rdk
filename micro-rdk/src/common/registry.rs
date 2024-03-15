@@ -3,12 +3,14 @@ use std::collections::HashMap as Map;
 use thiserror::Error;
 
 use super::{
-    base::BaseType,
     board::{BoardError, BoardType},
     config::ConfigType,
     generic::GenericComponentType,
     robot::Resource,
 };
+
+#[cfg(feature = "base")]
+use crate::components::base::BaseType;
 
 #[cfg(feature = "motor")]
 use crate::components::motor::MotorType;
@@ -72,7 +74,8 @@ impl ResourceKey {
             "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
             #[cfg(feature = "sensor")]
             "sensor" => crate::components::sensor::COMPONENT_NAME,
-            "base" => crate::common::base::COMPONENT_NAME,
+            #[cfg(feature = "base")]
+            "base" => crate::components::base::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
             #[cfg(feature = "power_sensor")]
@@ -99,7 +102,8 @@ impl TryFrom<ResourceName> for ResourceKey {
             "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
             #[cfg(feature = "encoder")]
             "encoder" => crate::components::encoder::COMPONENT_NAME,
-            "base" => crate::common::base::COMPONENT_NAME,
+            #[cfg(feature = "base")]
+            "base" => crate::components::base::COMPONENT_NAME,
             #[cfg(feature = "servo")]
             "servo" => crate::components::servo::COMPONENT_NAME,
             #[cfg(feature = "power_sensor")]
@@ -135,6 +139,7 @@ type MovementSensorConstructor =
 /// Fn that returns an `EncoderType`, `Arc<Mutex<dyn Encoder>>`
 type EncoderConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<EncoderType>;
 
+#[cfg(feature = "base")]
 /// Fn that returns an `BaseType`, `Arc<Mutex<dyn Base>>`
 type BaseConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<BaseType>;
 
@@ -163,6 +168,7 @@ pub struct ComponentRegistry {
     movement_sensors: Map<&'static str, &'static MovementSensorConstructor>,
     #[cfg(feature = "encoder")]
     encoders: Map<&'static str, &'static EncoderConstructor>,
+    #[cfg(feature = "base")]
     bases: Map<&'static str, &'static BaseConstructor>,
     #[cfg(feature = "servo")]
     servos: Map<&'static str, &'static ServoConstructor>,
@@ -179,6 +185,7 @@ impl Default for ComponentRegistry {
         #[cfg(feature = "builtin")]
         {
             crate::builtin::fake::register_models(&mut r);
+            #[cfg(feature = "motor")]
             crate::builtin::gpio_motor::register_models(&mut r);
             #[cfg(feature = "servo")]
             crate::builtin::gpio_servo::register_models(&mut r);
@@ -188,6 +195,7 @@ impl Default for ComponentRegistry {
             crate::builtin::adxl345::register_models(&mut r);
             #[cfg(feature = "power_sensor")]
             crate::builtin::ina::register_models(&mut r);
+            #[cfg(all(feature = "base", feature = "motor"))]
             crate::builtin::wheeled_base::register_models(&mut r);
         }
         #[cfg(esp32)]
@@ -196,8 +204,11 @@ impl Default for ComponentRegistry {
 
             #[cfg(feature = "builtin")]
             {
+                #[cfg(feature = "encoder")]
                 crate::builtin::esp32_encoder::register_models(&mut r);
+                #[cfg(feature = "sensor")]
                 crate::builtin::hcsr04::register_models(&mut r);
+                #[cfg(feature = "encoder")]
                 crate::builtin::single_encoder::register_models(&mut r);
             }
         }
@@ -216,7 +227,8 @@ impl ComponentRegistry {
         dependency_func_map.insert(crate::components::encoder::COMPONENT_NAME, Map::new());
         #[cfg(feature = "sensor")]
         dependency_func_map.insert(crate::components::sensor::COMPONENT_NAME, Map::new());
-        dependency_func_map.insert(crate::common::base::COMPONENT_NAME, Map::new());
+        #[cfg(feature = "base")]
+        dependency_func_map.insert(crate::components::base::COMPONENT_NAME, Map::new());
         #[cfg(feature = "servo")]
         dependency_func_map.insert(crate::components::servo::COMPONENT_NAME, Map::new());
         #[cfg(feature = "power_sensor")]
@@ -232,6 +244,7 @@ impl ComponentRegistry {
             movement_sensors: Map::new(),
             #[cfg(feature = "encoder")]
             encoders: Map::new(),
+            #[cfg(feature = "base")]
             bases: Map::new(),
             #[cfg(feature = "servo")]
             servos: Map::new(),
@@ -305,6 +318,7 @@ impl ComponentRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "base")]
     pub fn register_base(
         &mut self,
         model: &'static str,
@@ -453,6 +467,7 @@ impl ComponentRegistry {
         Err(RegistryError::ModelNotFound(model))
     }
 
+    #[cfg(feature = "base")]
     pub(crate) fn get_base_constructor(
         &self,
         model: String,

@@ -9,9 +9,10 @@ use std::{
 #[cfg(feature = "camera")]
 use crate::camera::{Camera, CameraType};
 
+#[allow(unused_imports)]
+use crate::common::actuator::Actuator;
+
 use crate::{
-    common::actuator::Actuator,
-    common::base::Base,
     common::board::Board,
     common::status::Status,
     google,
@@ -24,7 +25,6 @@ use crate::{
 use log::*;
 
 use super::{
-    base::BaseType,
     board::BoardType,
     config::{AttributeError, Component, ConfigType, DynamicComponentConfig},
     generic::{GenericComponent, GenericComponentType},
@@ -32,6 +32,9 @@ use super::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
 };
+
+#[cfg(feature = "base")]
+use crate::components::base::{Base, BaseType};
 
 #[cfg(feature = "motor")]
 use crate::components::motor::{Motor, MotorType};
@@ -60,6 +63,7 @@ pub enum ResourceType {
     #[cfg(feature = "motor")]
     Motor(MotorType),
     Board(BoardType),
+    #[cfg(feature = "base")]
     Base(BaseType),
     #[cfg(feature = "sensor")]
     Sensor(SensorType),
@@ -265,7 +269,8 @@ impl LocalRobot {
             "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
             #[cfg(feature = "sensor")]
             "sensor" => crate::components::sensor::COMPONENT_NAME,
-            "base" => crate::common::base::COMPONENT_NAME,
+            #[cfg(feature = "base")]
+            "base" => crate::components::base::COMPONENT_NAME,
             #[cfg(feature = "power_sensor")]
             "power_sensor" => crate::components::power_sensor::COMPONENT_NAME,
             #[cfg(feature = "servo")]
@@ -353,6 +358,7 @@ impl LocalRobot {
                     .map_err(RobotError::RobotRegistryError)?;
                 ResourceType::Encoder(ctor(cfg, deps).map_err(RobotError::RobotResourceBuildError)?)
             }
+            #[cfg(feature = "base")]
             "base" => {
                 let ctor = registry
                     .get_base_constructor(model)
@@ -420,6 +426,7 @@ impl LocalRobot {
                             status,
                         });
                     }
+                    #[cfg(feature = "base")]
                     ResourceType::Base(b) => {
                         let status = b.get_status()?;
                         vec.push(robot::v1::Status {
@@ -510,6 +517,7 @@ impl LocalRobot {
                                 status,
                             });
                         }
+                        #[cfg(feature = "base")]
                         ResourceType::Base(b) => {
                             let status = b.get_status()?;
                             vec.push(robot::v1::Status {
@@ -615,6 +623,7 @@ impl LocalRobot {
             None => None,
         }
     }
+    #[cfg(feature = "base")]
     pub fn get_base_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Base>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
@@ -737,9 +746,11 @@ impl LocalRobot {
     }
 
     pub fn stop_all(&mut self) -> anyhow::Result<()> {
+        #[allow(unused_mut)]
         let mut stop_errors: Vec<anyhow::Error> = vec![];
         for resource in self.resources.values_mut() {
             match resource {
+                #[cfg(feature = "base")]
                 ResourceType::Base(b) => {
                     match b.stop() {
                         Ok(_) => {}

@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -100,12 +102,16 @@ pub struct FakeIncrementalEncoder {
     pub ticks: f32,
 }
 
+
+#[cfg(feature = "encoder")]
 impl Default for FakeIncrementalEncoder {
     fn default() -> Self {
         Self::new()
     }
 }
 
+
+#[cfg(feature = "encoder")]
 impl FakeIncrementalEncoder {
     pub fn new() -> Self {
         Self { ticks: 0.0 }
@@ -119,6 +125,8 @@ impl FakeIncrementalEncoder {
     }
 }
 
+
+#[cfg(feature = "encoder")]
 impl Encoder for FakeIncrementalEncoder {
     fn get_properties(&mut self) -> EncoderSupportedRepresentations {
         EncoderSupportedRepresentations {
@@ -142,6 +150,8 @@ impl Encoder for FakeIncrementalEncoder {
     }
 }
 
+
+#[cfg(feature = "encoder")]
 impl Status for FakeIncrementalEncoder {
     fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
@@ -157,12 +167,16 @@ pub struct FakeEncoder {
     pub ticks_per_rotation: u32,
 }
 
+
+#[cfg(feature = "encoder")]
 impl Default for FakeEncoder {
     fn default() -> Self {
         Self::new()
     }
 }
 
+
+#[cfg(feature = "encoder")]
 impl FakeEncoder {
     pub fn new() -> Self {
         Self {
@@ -183,6 +197,8 @@ impl FakeEncoder {
     }
 }
 
+
+#[cfg(feature = "encoder")]
 impl Encoder for FakeEncoder {
     fn get_properties(&mut self) -> EncoderSupportedRepresentations {
         EncoderSupportedRepresentations {
@@ -204,6 +220,8 @@ impl Encoder for FakeEncoder {
     }
 }
 
+
+#[cfg(feature = "encoder")]
 impl Status for FakeEncoder {
     fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
@@ -266,6 +284,8 @@ pub struct FakeMotor {
     max_rpm: f64,
 }
 
+
+#[cfg(feature = "motor")]
 impl FakeMotor {
     pub fn new() -> Self {
         Self {
@@ -285,12 +305,15 @@ impl FakeMotor {
         Ok(Arc::new(Mutex::new(motor)))
     }
 }
+
+#[cfg(feature = "motor")]
 impl Default for FakeMotor {
     fn default() -> Self {
         Self::new()
     }
 }
 
+#[cfg(feature = "motor")]
 impl Motor for FakeMotor {
     fn get_position(&mut self) -> anyhow::Result<i32> {
         Ok(self.pos as i32)
@@ -312,6 +335,7 @@ impl Motor for FakeMotor {
         }
     }
 }
+#[cfg(feature = "motor")]
 impl Status for FakeMotor {
     fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
@@ -331,7 +355,7 @@ impl Status for FakeMotor {
         Ok(Some(google::protobuf::Struct { fields: hm }))
     }
 }
-
+#[cfg(feature = "motor")]
 impl Actuator for FakeMotor {
     fn stop(&mut self) -> anyhow::Result<()> {
         debug!("stopping motor");
@@ -350,6 +374,7 @@ pub struct FakeMotorWithDependency {
     power: f64,
 }
 
+#[cfg(feature = "motor")]
 impl FakeMotorWithDependency {
     pub fn new(encoder: Option<EncoderType>) -> Self {
         Self {
@@ -385,6 +410,7 @@ impl FakeMotorWithDependency {
     }
 }
 
+#[cfg(feature = "motor")]
 impl Motor for FakeMotorWithDependency {
     fn get_position(&mut self) -> anyhow::Result<i32> {
         match &self.encoder {
@@ -407,6 +433,7 @@ impl Motor for FakeMotorWithDependency {
     }
 }
 
+#[cfg(feature = "motor")]
 impl Status for FakeMotorWithDependency {
     fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let hm = HashMap::new();
@@ -414,6 +441,7 @@ impl Status for FakeMotorWithDependency {
     }
 }
 
+#[cfg(feature = "motor")]
 impl Actuator for FakeMotorWithDependency {
     fn stop(&mut self) -> anyhow::Result<()> {
         self.power = 0.0;
@@ -431,12 +459,14 @@ pub struct FakeMovementSensor {
     linear_acc: Vector3,
 }
 
+#[cfg(feature = "movement_sensor")]
 impl Default for FakeMovementSensor {
     fn default() -> Self {
         Self::new()
     }
 }
 
+#[cfg(feature = "movement_sensor")]
 impl FakeMovementSensor {
     pub fn new() -> Self {
         FakeMovementSensor {
@@ -485,6 +515,7 @@ impl FakeMovementSensor {
     }
 }
 
+#[cfg(feature = "movement_sensor")]
 impl MovementSensor for FakeMovementSensor {
     fn get_position(&mut self) -> anyhow::Result<GeoPosition> {
         Ok(self.pos)
@@ -517,6 +548,7 @@ impl MovementSensor for FakeMovementSensor {
     }
 }
 
+#[cfg(feature = "movement_sensor")]
 impl Status for FakeMovementSensor {
     fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {
@@ -531,6 +563,7 @@ pub struct FakeSensor {
     fake_reading: f64,
 }
 
+#[cfg(feature = "sensor")]
 impl FakeSensor {
     pub fn new() -> Self {
         FakeSensor {
@@ -545,14 +578,17 @@ impl FakeSensor {
     }
 }
 
+#[cfg(feature = "sensor")]
 impl Default for FakeSensor {
     fn default() -> Self {
         Self::new()
     }
 }
 
+#[cfg(feature = "sensor")]
 impl Sensor for FakeSensor {}
 
+#[cfg(feature = "sensor")]
 impl Readings for FakeSensor {
     fn get_generic_readings(&mut self) -> anyhow::Result<GenericReadingsResult> {
         Ok(self
@@ -563,6 +599,7 @@ impl Readings for FakeSensor {
     }
 }
 
+#[cfg(feature = "sensor")]
 impl SensorT<f64> for FakeSensor {
     fn get_readings(&self) -> anyhow::Result<TypedReadingsResult<f64>> {
         let mut x = HashMap::new();
@@ -571,6 +608,7 @@ impl SensorT<f64> for FakeSensor {
     }
 }
 
+#[cfg(feature = "sensor")]
 impl Status for FakeSensor {
     fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         Ok(Some(google::protobuf::Struct {

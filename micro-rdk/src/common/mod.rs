@@ -29,7 +29,6 @@
 pub mod actuator;
 pub mod analog;
 pub mod app_client;
-pub mod base;
 pub mod board;
 pub mod camera;
 pub mod config;
