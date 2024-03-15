@@ -4,7 +4,7 @@ use crate::proto::component::motor::v1::GetPropertiesResponse;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use super::config::{AttributeError, ConfigType, Kind};
+use super::config::{AttributeError, Kind};
 use super::actuator::Actuator;
 use super::generic::DoCommand;
 
