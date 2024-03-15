@@ -1,4 +1,4 @@
-#[cfg(feature = "movement_sensor")]
+#[cfg(all(feature = "movement_sensor", feature = "i2c"))]
 pub mod adxl345;
 #[cfg(all(feature = "esp32", feature = "encoder"))]
 pub mod esp32_encoder;
@@ -11,7 +11,7 @@ pub mod gpio_servo;
 pub mod ina;
 #[cfg(all(feature = "sensor", feature = "analog"))]
 pub mod moisture_sensor;
-#[cfg(feature = "movement_sensor")]
+#[cfg(all(feature = "movement_sensor", feature = "i2c"))]
 pub mod mpu6050;
 #[cfg(all(feature = "esp32", feature = "sensor"))]
 pub mod hcsr04;
