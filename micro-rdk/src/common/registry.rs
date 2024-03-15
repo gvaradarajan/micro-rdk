@@ -13,8 +13,11 @@ use super::{
     power_sensor::PowerSensorType,
     robot::Resource,
     sensor::SensorType,
-    servo::ServoType,
 };
+
+#[cfg(feature = "servo")]
+use crate::components::servo::ServoType;
+
 use crate::proto::common::v1::ResourceName;
 
 #[derive(Debug, Error, Eq, PartialEq)]
@@ -56,7 +59,8 @@ impl ResourceKey {
             "movement_sensor" => crate::common::movement_sensor::COMPONENT_NAME,
             "sensor" => crate::common::sensor::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
-            "servo" => crate::common::servo::COMPONENT_NAME,
+            #[cfg(feature = "servo")]
+            "servo" => crate::components::servo::COMPONENT_NAME,
             "power_sensor" => crate::common::power_sensor::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
             &_ => {
@@ -77,7 +81,8 @@ impl TryFrom<ResourceName> for ResourceKey {
             "movement_sensor" => crate::common::movement_sensor::COMPONENT_NAME,
             "encoder" => crate::common::encoder::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
-            "servo" => crate::common::servo::COMPONENT_NAME,
+            #[cfg(feature = "servo")]
+            "servo" => crate::components::servo::COMPONENT_NAME,
             "power_sensor" => crate::common::power_sensor::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
             _ => {
@@ -109,6 +114,7 @@ type EncoderConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<
 /// Fn that returns an `BaseType`, `Arc<Mutex<dyn Base>>`
 type BaseConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<BaseType>;
 
+#[cfg(feature = "servo")]
 /// Fn that returns a `ServoType`, `Arc<Mutex<dyn Servo>>`
 type ServoConstructor = dyn Fn(ConfigType, Vec<Dependency>) -> anyhow::Result<ServoType>;
 
@@ -129,6 +135,7 @@ pub struct ComponentRegistry {
     movement_sensors: Map<&'static str, &'static MovementSensorConstructor>,
     encoders: Map<&'static str, &'static EncoderConstructor>,
     bases: Map<&'static str, &'static BaseConstructor>,
+    #[cfg(feature = "servo")]
     servos: Map<&'static str, &'static ServoConstructor>,
     power_sensors: Map<&'static str, &'static PowerSensorConstructor>,
     generic_components: Map<&'static str, &'static GenericComponentConstructor>,
@@ -143,6 +150,7 @@ impl Default for ComponentRegistry {
         {
             crate::builtin::fake::register_models(&mut r);
             crate::builtin::gpio_motor::register_models(&mut r);
+            #[cfg(feature = "servo")]
             crate::builtin::gpio_servo::register_models(&mut r);
             crate::builtin::mpu6050::register_models(&mut r);
             crate::builtin::adxl345::register_models(&mut r);
@@ -172,7 +180,7 @@ impl ComponentRegistry {
         dependency_func_map.insert(crate::common::encoder::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::base::COMPONENT_NAME, Map::new());
-        dependency_func_map.insert(crate::common::servo::COMPONENT_NAME, Map::new());
+        dependency_func_map.insert(crate::components::servo::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::power_sensor::COMPONENT_NAME, Map::new());
         dependency_func_map.insert(crate::common::generic::COMPONENT_NAME, Map::new());
         Self {
@@ -182,6 +190,7 @@ impl ComponentRegistry {
             movement_sensors: Map::new(),
             encoders: Map::new(),
             bases: Map::new(),
+            #[cfg(feature = "servo")]
             servos: Map::new(),
             power_sensors: Map::new(),
             generic_components: Map::new(),
@@ -272,6 +281,7 @@ impl ComponentRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "servo")]
     pub fn register_servo(
         &mut self,
         model: &'static str,
@@ -412,6 +422,7 @@ impl ComponentRegistry {
         Err(RegistryError::ModelNotFound(model))
     }
 
+    #[cfg(feature = "servo")]
     pub(crate) fn get_servo_constructor(
         &self,
         model: String,

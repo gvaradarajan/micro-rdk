@@ -1,5 +1,7 @@
 pub mod common;
 
+pub mod components;
+
 #[cfg(feature = "esp32")]
 pub mod esp32;
 

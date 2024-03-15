@@ -48,7 +48,6 @@ pub mod power_sensor;
 pub mod registry;
 pub mod robot;
 pub mod sensor;
-pub mod servo;
 pub mod status;
 pub mod webrtc {
     pub mod api;

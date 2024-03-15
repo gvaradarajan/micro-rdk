@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use super::{actuator::Actuator, generic::DoCommand, status::Status};
+use crate::common::{actuator::Actuator, generic::DoCommand, status::Status};
 
 pub static COMPONENT_NAME: &str = "servo";
 

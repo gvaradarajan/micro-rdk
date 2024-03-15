@@ -3,6 +3,7 @@ pub mod adxl345;
 pub mod esp32_encoder;
 pub mod fake;
 pub mod gpio_motor;
+#[cfg(feature = "servo")]
 pub mod gpio_servo;
 pub mod ina;
 pub mod moisture_sensor;

@@ -40,8 +40,11 @@ use super::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
     sensor::SensorType,
-    servo::{Servo, ServoType},
 };
+
+#[cfg(feature = "servo")]
+use crate::components::servo::{Servo, ServoType};
+
 use thiserror::Error;
 
 static NAMESPACE_PREFIX: &str = "rdk:builtin:";
@@ -55,6 +58,7 @@ pub enum ResourceType {
     MovementSensor(MovementSensorType),
     Encoder(EncoderType),
     PowerSensor(PowerSensorType),
+    #[cfg(feature = "servo")]
     Servo(ServoType),
     Generic(GenericComponentType),
     #[cfg(feature = "camera")]
@@ -248,7 +252,8 @@ impl LocalRobot {
             "sensor" => crate::common::sensor::COMPONENT_NAME,
             "base" => crate::common::base::COMPONENT_NAME,
             "power_sensor" => crate::common::power_sensor::COMPONENT_NAME,
-            "servo" => crate::common::servo::COMPONENT_NAME,
+            #[cfg(feature = "servo")]
+            "servo" => crate::components::servo::COMPONENT_NAME,
             "generic" => crate::common::generic::COMPONENT_NAME,
             &_ => {
                 return Err(RobotError::RobotComponentTypeNotSupported(
@@ -342,6 +347,7 @@ impl LocalRobot {
                     ctor(cfg, deps).map_err(RobotError::RobotResourceBuildError)?,
                 )
             }
+            #[cfg(feature = "servo")]
             "servo" => {
                 let ctor = registry
                     .get_servo_constructor(model)
@@ -432,6 +438,7 @@ impl LocalRobot {
                             status,
                         });
                     }
+                    #[cfg(feature = "servo")]
                     ResourceType::Servo(b) => {
                         let status = b.get_status()?;
                         vec.push(robot::v1::Status {
@@ -516,6 +523,7 @@ impl LocalRobot {
                                 status,
                             });
                         }
+                        #[cfg(feature = "servo")]
                         ResourceType::Servo(b) => {
                             let status = b.get_status()?;
                             vec.push(robot::v1::Status {
@@ -660,6 +668,7 @@ impl LocalRobot {
         }
     }
 
+    #[cfg(feature = "servo")]
     pub fn get_servo_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Servo>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),

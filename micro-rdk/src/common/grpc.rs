@@ -303,10 +303,15 @@ where
             "/viam.component.powersensor.v1.PowerSensorService/DoCommand" => {
                 self.power_sensor_do_command(payload)
             }
+            #[cfg(feature = "servo")]
             "/viam.component.servo.v1.ServoService/Move" => self.servo_move(payload),
+            #[cfg(feature = "servo")]
             "/viam.component.servo.v1.ServoService/GetPosition" => self.servo_get_position(payload),
+            #[cfg(feature = "servo")]
             "/viam.component.servo.v1.ServoService/IsMoving" => self.servo_is_moving(payload),
+            #[cfg(feature = "servo")]
             "/viam.component.servo.v1.ServoService/Stop" => self.servo_stop(payload),
+            #[cfg(feature = "servo")]
             "/viam.component.servo.v1.ServoService/DoCommand" => self.servo_do_command(payload),
             _ => Err(ServerError::from(GrpcError::RpcUnimplemented)),
         }
@@ -462,6 +467,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "servo")]
     fn servo_move(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::servo::v1::MoveRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -478,6 +484,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "servo")]
     fn servo_get_position(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::servo::v1::GetPositionRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -494,6 +501,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "servo")]
     fn servo_is_moving(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::servo::v1::IsMovingRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -511,6 +519,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "servo")]
     fn servo_stop(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::servo::v1::StopRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -527,6 +536,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "servo")]
     fn servo_do_command(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = proto::common::v1::DoCommandRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;

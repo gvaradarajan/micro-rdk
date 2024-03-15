@@ -229,7 +229,7 @@ where
 mod tests {
     use crate::common::board::{Board, FakeBoard};
     use crate::common::gpio_servo::{GpioServo, GpioServoSettings};
-    use crate::common::servo::Servo;
+    use crate::components::servo::Servo;
     use std::sync::{Arc, Mutex};
 
     #[test_log::test]
