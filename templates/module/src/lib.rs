@@ -19,7 +19,7 @@ use micro_rdk::common::{actuator::Actuator, servo::{Servo, ServoType}};
 {% elsif starting_component == "GenericComponent" %}
 use micro_rdk::common::generic::{GenericComponent, GenericComponentType};
 {% elsif starting_component == "Encoder" %}
-use micro_rdk::common::encoder::{Encoder, EncoderType};
+use micro_rdk::components::encoder::{Encoder, EncoderType};
 {% else %}
 {% endif %}
 

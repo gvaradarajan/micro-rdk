@@ -116,6 +116,7 @@ pub mod proto {
             }
         }
 
+        #[cfg(feature = "movement_sensor")]
         pub mod movement_sensor {
             pub mod v1 {
                 #![allow(clippy::derive_partial_eq_without_eq)]

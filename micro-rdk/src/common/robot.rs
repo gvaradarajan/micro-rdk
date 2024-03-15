@@ -13,7 +13,6 @@ use crate::{
     common::actuator::Actuator,
     common::base::Base,
     common::board::Board,
-    common::encoder::Encoder,
     common::motor::Motor,
     common::status::Status,
     google,
@@ -29,13 +28,15 @@ use super::{
     base::BaseType,
     board::BoardType,
     config::{AttributeError, Component, ConfigType, DynamicComponentConfig},
-    encoder::EncoderType,
     generic::{GenericComponent, GenericComponentType},
     motor::MotorType,
     registry::{
         get_board_from_dependencies, ComponentRegistry, Dependency, RegistryError, ResourceKey,
     },
 };
+
+#[cfg(feature = "encoder")]
+use crate::components::encoder::{Encoder, EncoderType};
 
 #[cfg(feature = "movement_sensor")]
 use crate::components::movement_sensor::{MovementSensor, MovementSensorType};
@@ -62,6 +63,7 @@ pub enum ResourceType {
     Sensor(SensorType),
     #[cfg(feature = "movement_sensor")]
     MovementSensor(MovementSensorType),
+    #[cfg(feature = "encoder")]
     Encoder(EncoderType),
     #[cfg(feature = "power_sensor")]
     PowerSensor(PowerSensorType),
@@ -254,7 +256,8 @@ impl LocalRobot {
         let type_as_static = match config.get_type() {
             "motor" => crate::common::motor::COMPONENT_NAME,
             "board" => crate::common::board::COMPONENT_NAME,
-            "encoder" => crate::common::encoder::COMPONENT_NAME,
+            #[cfg(feature = "encoder")]
+            "encoder" => crate::components::encoder::COMPONENT_NAME,
             #[cfg(feature = "movement_sensor")]
             "movement_sensor" => crate::components::movement_sensor::COMPONENT_NAME,
             #[cfg(feature = "sensor")]
@@ -339,6 +342,7 @@ impl LocalRobot {
                     ctor(cfg, deps).map_err(RobotError::RobotResourceBuildError)?,
                 )
             }
+            #[cfg(feature = "encoder")]
             "encoder" => {
                 let ctor = registry
                     .get_encoder_constructor(model)
@@ -437,6 +441,7 @@ impl LocalRobot {
                             status,
                         });
                     }
+                    #[cfg(feature = "encoder")]
                     ResourceType::Encoder(b) => {
                         let status = b.get_status()?;
                         vec.push(robot::v1::Status {
@@ -525,6 +530,7 @@ impl LocalRobot {
                                 status,
                             });
                         }
+                        #[cfg(feature = "encoder")]
                         ResourceType::Encoder(b) => {
                             let status = b.get_status()?;
                             vec.push(robot::v1::Status {
@@ -661,6 +667,7 @@ impl LocalRobot {
         }
     }
 
+    #[cfg(feature = "encoder")]
     pub fn get_encoder_by_name(&self, name: String) -> Option<Arc<Mutex<dyn Encoder>>> {
         let name = ResourceName {
             namespace: "rdk".to_string(),
@@ -761,7 +768,8 @@ mod tests {
 
     use crate::common::board::Board;
     use crate::common::config::{DynamicComponentConfig, Kind};
-    use crate::common::encoder::{Encoder, EncoderPositionType};
+    #[cfg(feature = "encoder")]
+    use crate::components::encoder::{Encoder, EncoderPositionType};
     use crate::common::i2c::I2CHandle;
     use crate::common::motor::Motor;
     #[cfg(feature = "movement_sensor")]
@@ -876,6 +884,7 @@ mod tests {
                     ),
                 ])),
             }),
+            #[cfg(feature = "encoder")]
             Some(DynamicComponentConfig {
                 name: "enc1".to_owned(),
                 namespace: "rdk".to_owned(),
@@ -889,6 +898,7 @@ mod tests {
                     ),
                 ])),
             }),
+            #[cfg(feature = "encoder")]
             Some(DynamicComponentConfig {
                 name: "enc2".to_owned(),
                 namespace: "rdk".to_owned(),
@@ -1022,62 +1032,66 @@ mod tests {
             assert_eq!(lin_acc.z, 100.4);
         }
 
-        let mut enc1 = robot.get_encoder_by_name("enc1".to_string());
-        assert!(enc1.is_some());
+        #[cfg(feature = "encoder")]
+        {
+            let mut enc1 = robot.get_encoder_by_name("enc1".to_string());
+            assert!(enc1.is_some());
 
-        let props = enc1.as_mut().unwrap().get_properties();
-        assert!(props.ticks_count_supported);
-        assert!(props.angle_degrees_supported);
+            let props = enc1.as_mut().unwrap().get_properties();
+            assert!(props.ticks_count_supported);
+            assert!(props.angle_degrees_supported);
 
-        let pos_deg = enc1
-            .as_mut()
-            .unwrap()
-            .get_position(EncoderPositionType::DEGREES);
-        assert!(pos_deg.is_ok());
-        assert_eq!(
-            pos_deg.as_ref().unwrap().position_type,
-            EncoderPositionType::DEGREES
-        );
-        assert_eq!(pos_deg.as_ref().unwrap().value, 45.0);
+            let pos_deg = enc1
+                .as_mut()
+                .unwrap()
+                .get_position(EncoderPositionType::DEGREES);
+            assert!(pos_deg.is_ok());
+            assert_eq!(
+                pos_deg.as_ref().unwrap().position_type,
+                EncoderPositionType::DEGREES
+            );
+            assert_eq!(pos_deg.as_ref().unwrap().value, 45.0);
 
-        let pos_tick = enc1
-            .as_mut()
-            .unwrap()
-            .get_position(EncoderPositionType::TICKS);
-        assert!(pos_tick.is_ok());
-        assert_eq!(pos_tick.as_ref().unwrap().value, 0.25);
-        assert_eq!(
-            pos_tick.as_ref().unwrap().position_type,
-            EncoderPositionType::TICKS
-        );
+            let pos_tick = enc1
+                .as_mut()
+                .unwrap()
+                .get_position(EncoderPositionType::TICKS);
+            assert!(pos_tick.is_ok());
+            assert_eq!(pos_tick.as_ref().unwrap().value, 0.25);
+            assert_eq!(
+                pos_tick.as_ref().unwrap().position_type,
+                EncoderPositionType::TICKS
+            );
 
-        let mut enc2 = robot.get_encoder_by_name("enc2".to_string());
-        assert!(enc2.is_some());
+            let mut enc2 = robot.get_encoder_by_name("enc2".to_string());
+            assert!(enc2.is_some());
 
-        let pos_deg = enc2
-            .as_mut()
-            .unwrap()
-            .get_position(EncoderPositionType::DEGREES);
-        assert!(pos_deg.is_err());
+            let pos_deg = enc2
+                .as_mut()
+                .unwrap()
+                .get_position(EncoderPositionType::DEGREES);
+            assert!(pos_deg.is_err());
 
-        let pos_tick = enc2
-            .as_mut()
-            .unwrap()
-            .get_position(EncoderPositionType::TICKS);
-        assert!(pos_tick.is_ok());
-        assert_eq!(
-            pos_tick.as_ref().unwrap().position_type,
-            EncoderPositionType::TICKS
-        );
-        assert_eq!(pos_tick.as_ref().unwrap().value, 3.0);
+            let pos_tick = enc2
+                .as_mut()
+                .unwrap()
+                .get_position(EncoderPositionType::TICKS);
+            assert!(pos_tick.is_ok());
+            assert_eq!(
+                pos_tick.as_ref().unwrap().position_type,
+                EncoderPositionType::TICKS
+            );
+            assert_eq!(pos_tick.as_ref().unwrap().value, 3.0);
 
-        let pos_deg = enc2
-            .as_mut()
-            .unwrap()
-            .get_position(EncoderPositionType::DEGREES);
-        assert!(pos_deg.is_err());
+            let pos_deg = enc2
+                .as_mut()
+                .unwrap()
+                .get_position(EncoderPositionType::DEGREES);
+            assert!(pos_deg.is_err());
+        }
     }
 
+    #[cfg(feature = "encoder")]
     #[test_log::test]
     fn test_from_cloud_config() {
         let mut component_cfgs = Vec::new();
@@ -1204,6 +1218,7 @@ mod tests {
         assert_eq!(position.ok().unwrap(), 180);
     }
 
+    #[cfg(feature = "encoder")]
     #[test_log::test]
     fn test_cloud_config_missing_dependencies() {
         let mut component_cfgs = Vec::new();

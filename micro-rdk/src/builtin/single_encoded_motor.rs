@@ -1,7 +1,7 @@
 use super::single_encoder::SingleEncoderType;
 
 use crate::common::actuator::Actuator;
-use crate::common::encoder::{
+use crate::components::encoder::{
     Direction, Encoder, EncoderPositionType, EncoderSupportedRepresentations, SingleEncoder,
 };
 use crate::common::motor::{Motor, MotorSupportedProperties, MotorType};

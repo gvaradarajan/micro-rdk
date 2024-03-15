@@ -14,7 +14,8 @@ pub mod moisture_sensor;
 pub mod mpu6050;
 #[cfg(all(feature = "esp32", feature = "sensor"))]
 pub mod hcsr04;
+#[cfg(feature = "encoder")]
 pub mod single_encoded_motor;
-#[cfg(feature = "esp32")]
+#[cfg(all(feature = "esp32", feature = "encoder"))]
 pub mod single_encoder;
 pub mod wheeled_base;

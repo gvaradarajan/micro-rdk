@@ -290,15 +290,19 @@ where
             "/viam.component.movementsensor.v1.MovementSensorService/DoCommand" => {
                 self.movement_sensor_do_command(payload)
             }
+            #[cfg(feature = "encoder")]
             "/viam.component.encoder.v1.EncoderService/GetPosition" => {
                 self.encoder_get_position(payload)
             }
+            #[cfg(feature = "encoder")]
             "/viam.component.encoder.v1.EncoderService/ResetPosition" => {
                 self.encoder_reset_position(payload)
             }
+            #[cfg(feature = "encoder")]
             "/viam.component.encoder.v1.EncoderService/GetProperties" => {
                 self.encoder_get_properties(payload)
             }
+            #[cfg(feature = "encoder")]
             "/viam.component.encoder.v1.EncoderService/DoCommand" => {
                 self.encoder_do_command(payload)
             }
@@ -1066,6 +1070,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "encoder")]
     fn encoder_get_properties(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::encoder::v1::GetPropertiesRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -1079,6 +1084,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "encoder")]
     fn encoder_get_position(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::encoder::v1::GetPositionRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -1097,6 +1103,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "encoder")]
     fn encoder_reset_position(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::encoder::v1::ResetPositionRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -1112,6 +1119,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "encoder")]
     fn encoder_do_command(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = proto::common::v1::DoCommandRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;

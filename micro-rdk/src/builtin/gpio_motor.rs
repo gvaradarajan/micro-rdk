@@ -46,7 +46,8 @@ use anyhow::Context;
 use crate::common::actuator::Actuator;
 use crate::common::board::{Board, BoardType};
 use crate::common::config::ConfigType;
-use crate::common::encoder::{
+#[cfg(feature = "encoder")]
+use crate::components::encoder::{
     Encoder, EncoderPositionType, EncoderType, COMPONENT_NAME as EncoderCompName,
 };
 use crate::common::math_utils::go_for_math;
@@ -123,6 +124,7 @@ pub(crate) fn gpio_motor_from_config(
 // of forcing the user to supply a PWM frequency in the motor config)
 const MOTOR_PWM_FREQUENCY: u64 = 1000;
 
+#[cfg(feature = "encoder")]
 #[derive(DoCommand)]
 pub struct EncodedMotor<M, Enc> {
     motor: M,

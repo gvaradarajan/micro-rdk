@@ -5,8 +5,8 @@ use crate::proto::component::encoder::v1::GetPositionResponse;
 use crate::proto::component::encoder::v1::GetPropertiesResponse;
 use crate::proto::component::encoder::v1::PositionType;
 
-use super::generic::DoCommand;
-use super::status::Status;
+use crate::common::generic::DoCommand;
+use crate::common::status::Status;
 
 pub static COMPONENT_NAME: &str = "encoder";
 

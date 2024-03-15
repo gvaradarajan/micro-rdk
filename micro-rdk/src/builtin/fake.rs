@@ -16,7 +16,7 @@ use crate::common::registry::{ComponentRegistry, Dependency, ResourceKey};
 use crate::common::robot::Resource;
 use crate::common::status::Status;
 
-use crate::common::encoder::{Encoder, EncoderType, EncoderPositionType, EncoderPosition, EncoderSupportedRepresentations, COMPONENT_NAME as EncoderCompName};
+use crate::components::encoder::{Encoder, EncoderType, EncoderPositionType, EncoderPosition, EncoderSupportedRepresentations, COMPONENT_NAME as EncoderCompName};
 use crate::common::motor::{
     Motor, MotorPinType, MotorPinsConfig, MotorSupportedProperties, MotorType,
     COMPONENT_NAME as MotorCompName,

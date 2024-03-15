@@ -19,7 +19,7 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::common::config::ConfigType;
-use crate::common::encoder::{
+use crate::components::encoder::{
     Encoder, EncoderPosition, EncoderPositionType, EncoderSupportedRepresentations, EncoderType,
 };
 use crate::common::registry::{ComponentRegistry, Dependency};

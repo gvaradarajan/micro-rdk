@@ -4,7 +4,7 @@ use crate::esp32::pin::PinExt;
 use crate::esp32::pulse_counter::{get_unit, isr_install, isr_installed, isr_remove_unit};
 
 use crate::common::config::{AttributeError, ConfigType};
-use crate::common::encoder::{
+use crate::components::encoder::{
     Direction, Encoder, EncoderPosition, EncoderPositionType, EncoderSupportedRepresentations,
     EncoderType, SingleEncoder,
 };
