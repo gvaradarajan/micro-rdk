@@ -1,18 +1,24 @@
 //! Abstraction of a general-purpose compute board
 
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 use crate::{
-    common::{analog::AnalogReader, status::Status},
+    common::status::Status,
     google,
     proto::{common, component},
 };
-
+#[cfg(feature = "analog")]
 use core::cell::RefCell;
+
+#[cfg(feature = "analog")]
+use std::{collections::HashMap, rc::Rc};
+
 use log::*;
-use std::{collections::HashMap, rc::Rc, sync::Arc, sync::Mutex, time::Duration};
+use std::{sync::Arc, sync::Mutex, time::Duration};
+
+#[cfg(feature = "analog")]
+use super::analog::{AnalogError, FakeAnalogReader, AnalogReader};
 
 use super::{
-    analog::{AnalogError, FakeAnalogReader},
     config::ConfigType,
     generic::DoCommand,
     i2c::{FakeI2CHandle, FakeI2cConfig, I2CErrors, I2CHandle, I2cHandleType},
@@ -43,6 +49,7 @@ pub enum BoardError {
 
 pub static COMPONENT_NAME: &str = "board";
 
+#[cfg(feature = "analog")]
 pub(crate) fn register_models(registry: &mut ComponentRegistry) {
     if registry
         .register_board("fake", &FakeBoard::from_config)
@@ -63,6 +70,7 @@ pub trait Board: Status + DoCommand {
     /// Get the state of a pin, high(`true`) or low(`false`)
     fn get_gpio_level(&self, pin: i32) -> Result<bool, BoardError>;
 
+    #[cfg(feature = "analog")]
     /// Get an [AnalogReader] by name
     fn get_analog_reader_by_name(
         &self,
@@ -105,16 +113,19 @@ pub trait Board: Status + DoCommand {
 /// An alias for a thread-safe handle to a struct that implements the [Board] trait
 pub type BoardType = Arc<Mutex<dyn Board>>;
 
+#[cfg(feature = "analog")]
 #[doc(hidden)]
 /// A test implementation of a generic compute board
 #[derive(DoCommand)]
 pub struct FakeBoard {
+    #[cfg(feature = "analog")]
     analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = AnalogError>>>>,
     i2cs: HashMap<String, Arc<Mutex<FakeI2CHandle>>>,
     pin_pwms: HashMap<i32, f64>,
     pin_pwm_freq: HashMap<i32, u64>,
 }
 
+#[cfg(feature = "analog")]
 impl FakeBoard {
     pub fn new(analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = AnalogError>>>>) -> Self {
         let mut i2cs: HashMap<String, Arc<Mutex<FakeI2CHandle>>> = HashMap::new();
@@ -168,6 +179,7 @@ impl FakeBoard {
     }
 }
 
+#[cfg(feature = "analog")]
 impl Board for FakeBoard {
     fn set_gpio_pin_level(&mut self, pin: i32, is_high: bool) -> Result<(), BoardError> {
         info!("set pin {} to {}", pin, is_high);
@@ -248,6 +260,7 @@ impl Board for FakeBoard {
     }
 }
 
+#[cfg(feature = "analog")]
 impl Status for FakeBoard {
     fn get_status(&self) -> anyhow::Result<Option<google::protobuf::Struct>> {
         let mut hm = HashMap::new();
@@ -302,6 +315,7 @@ where
         self.lock().unwrap().set_gpio_pin_level(pin, is_high)
     }
 
+    #[cfg(feature = "analog")]
     fn get_analog_reader_by_name(
         &self,
         name: String,

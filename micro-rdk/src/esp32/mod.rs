@@ -1,5 +1,5 @@
 //! ESP32-specific implementations of components and tools
-
+#[cfg(feature = "analog")]
 pub mod analog;
 pub mod board;
 #[cfg(feature = "camera")]

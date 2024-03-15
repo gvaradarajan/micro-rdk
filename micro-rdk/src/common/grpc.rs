@@ -669,6 +669,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "analog")]
     fn board_read_analog_reader(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::board::v1::ReadAnalogReaderRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -687,6 +688,11 @@ where
                 as i32,
         };
         self.encode_message(resp)
+    }
+
+    #[cfg(not(feature = "analog"))]
+    fn board_read_analog_reader(&mut self, _message: &[u8]) -> Result<(), ServerError> {
+        Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
     fn board_set_pin(&mut self, message: &[u8]) -> Result<(), ServerError> {

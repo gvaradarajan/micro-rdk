@@ -181,6 +181,7 @@ pub struct ComponentRegistry {
 impl Default for ComponentRegistry {
     fn default() -> Self {
         let mut r = Self::new();
+        #[cfg(feature = "analog")]
         crate::common::board::register_models(&mut r);
         #[cfg(feature = "builtin")]
         {

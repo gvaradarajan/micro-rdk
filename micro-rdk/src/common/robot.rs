@@ -781,6 +781,7 @@ impl LocalRobot {
     }
 }
 
+#[cfg(feature = "analog")]
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;

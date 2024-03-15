@@ -27,6 +27,7 @@
 //! - [mpu6050]
 
 pub mod actuator;
+#[cfg(feature = "analog")]
 pub mod analog;
 pub mod app_client;
 pub mod board;

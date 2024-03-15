@@ -9,7 +9,7 @@ pub mod gpio_motor;
 pub mod gpio_servo;
 #[cfg(feature = "power_sensor")]
 pub mod ina;
-#[cfg(feature = "sensor")]
+#[cfg(all(feature = "sensor", feature = "analog"))]
 pub mod moisture_sensor;
 #[cfg(feature = "movement_sensor")]
 pub mod mpu6050;
