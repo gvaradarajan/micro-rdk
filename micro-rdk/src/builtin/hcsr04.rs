@@ -51,13 +51,14 @@ use crate::{
     common::{
         config::{AttributeError, ConfigType},
         registry::{ComponentRegistry, Dependency},
-        sensor::{
-            GenericReadingsResult, Readings, Sensor, SensorResult, SensorT, SensorType,
-            TypedReadingsResult,
-        },
         status::Status,
     },
     google, DoCommand,
+};
+
+use crate::components::sensor::{
+    GenericReadingsResult, Readings, Sensor, SensorResult, SensorT, SensorType,
+    TypedReadingsResult,
 };
 
 use crate::esp32::esp_idf_svc::hal::{
