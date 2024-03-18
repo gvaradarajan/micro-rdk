@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use core::fmt;
 use std::{
     fmt::Debug,
@@ -598,6 +600,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "gpio")]
     fn board_get_digital_interrupt_value(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::board::v1::GetDigitalInterruptValueRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -615,6 +618,11 @@ where
             .into();
         let resp = component::board::v1::GetDigitalInterruptValueResponse { value };
         self.encode_message(resp)
+    }
+
+    #[cfg(not(feature = "gpio"))]
+    fn board_get_digital_interrupt_value(&mut self, _message: &[u8]) -> Result<(), ServerError> {
+        Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
     fn board_status(&mut self, message: &[u8]) -> Result<(), ServerError> {
@@ -635,6 +643,12 @@ where
         self.encode_message(status)
     }
 
+    #[cfg(not(feature = "gpio"))]
+    fn board_pwm(&mut self, _message: &[u8]) -> Result<(), ServerError> {
+        Err(ServerError::from(GrpcError::RpcUnimplemented))
+    }
+
+    #[cfg(feature = "gpio")]
     fn board_pwm(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::board::v1::PwmRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -651,6 +665,12 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(not(feature = "gpio"))]
+    fn board_pwm_frequency(&mut self, _message: &[u8]) -> Result<(), ServerError> {
+        Err(ServerError::from(GrpcError::RpcUnimplemented))
+    }
+
+    #[cfg(feature = "gpio")]
     fn board_pwm_frequency(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::board::v1::PwmFrequencyRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -695,6 +715,7 @@ where
         Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
+    #[cfg(feature = "gpio")]
     fn board_set_pin(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::board::v1::SetGpioRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -714,6 +735,12 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(not(feature = "gpio"))]
+    fn board_set_pin(&mut self, _message: &[u8]) -> Result<(), ServerError> {
+        Err(ServerError::from(GrpcError::RpcUnimplemented))
+    }
+
+    #[cfg(feature = "gpio")]
     fn board_set_pwm(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::board::v1::SetPwmRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -730,6 +757,12 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(not(feature = "gpio"))]
+    fn board_set_pwm(&mut self, _message: &[u8]) -> Result<(), ServerError> {
+        Err(ServerError::from(GrpcError::RpcUnimplemented))
+    }
+
+    #[cfg(feature = "gpio")]
     fn board_set_pwm_frequency(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::board::v1::SetPwmFrequencyRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -743,6 +776,11 @@ where
         let _ = board.set_pwm_frequency(pin, req.frequency_hz);
         let resp = component::board::v1::SetPwmFrequencyResponse {};
         self.encode_message(resp)
+    }
+
+    #[cfg(not(feature = "gpio"))]
+    fn board_set_pwm_frequency(&mut self, _message: &[u8]) -> Result<(), ServerError> {
+        Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
     fn board_set_power_mode(&mut self, message: &[u8]) -> Result<(), ServerError> {
@@ -777,6 +815,7 @@ where
         self.encode_message(resp)
     }
 
+    #[cfg(feature = "gpio")]
     fn board_get_pin(&mut self, message: &[u8]) -> Result<(), ServerError> {
         let req = component::board::v1::GetGpioRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -793,6 +832,11 @@ where
             .map_err(|err| ServerError::new(GrpcError::RpcInternal, Some(err.into())))?;
         let resp = component::board::v1::GetGpioResponse { high: level };
         self.encode_message(resp)
+    }
+
+    #[cfg(not(feature = "gpio"))]
+    fn board_get_pin(&mut self, _message: &[u8]) -> Result<(), ServerError> {
+        Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
     fn board_do_command(&mut self, message: &[u8]) -> Result<(), ServerError> {

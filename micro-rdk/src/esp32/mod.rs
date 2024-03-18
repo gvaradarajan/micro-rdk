@@ -11,8 +11,10 @@ pub mod esp_idf_svc;
 pub mod exec;
 #[cfg(feature = "i2c")]
 pub mod i2c;
+#[cfg(feature = "gpio")]
 pub mod pin;
 pub mod pulse_counter;
+#[cfg(feature = "gpio")]
 pub mod pwm;
 pub mod tcp;
 pub mod tls;

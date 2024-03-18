@@ -3,9 +3,9 @@ pub mod adxl345;
 #[cfg(all(feature = "esp32", feature = "encoder"))]
 pub mod esp32_encoder;
 pub mod fake;
-#[cfg(feature = "motor")]
+#[cfg(all(feature = "motor", feature = "gpio"))]
 pub mod gpio_motor;
-#[cfg(feature = "servo")]
+#[cfg(all(feature = "servo", feature = "gpio"))]
 pub mod gpio_servo;
 #[cfg(feature = "power_sensor")]
 pub mod ina;

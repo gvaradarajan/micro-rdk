@@ -1,4 +1,7 @@
 #![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(clippy::new_without_default)]
 
 #[cfg(feature = "analog")]
 use core::cell::RefCell;
@@ -23,7 +26,6 @@ use crate::{
     common::{
         board::{Board, BoardError, BoardType},
         config::ConfigType,
-        digital_interrupt::DigitalInterruptConfig,
         registry::ComponentRegistry,
         status::Status,
     },
@@ -31,12 +33,16 @@ use crate::{
     proto::{common, component},
 };
 
+#[cfg(feature = "gpio")]
+use crate::common::digital_interrupt::DigitalInterruptConfig;
+
 #[cfg(feature = "analog")]
 use super::analog::Esp32AnalogReader;
 
 #[cfg(feature = "i2c")]
 use super::i2c::{Esp32I2C, Esp32I2cConfig};
 
+#[cfg(feature = "gpio")]
 use super::pin::Esp32GPIOPin;
 
 #[cfg(feature = "analog")]
@@ -45,6 +51,7 @@ use crate::esp32::esp_idf_svc::hal::adc::{
     AdcDriver, ADC1,
 };
 
+#[cfg(feature = "gpio")]
 use crate::esp32::esp_idf_svc::hal::gpio::InterruptType;
 
 
@@ -60,6 +67,7 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 /// An ESP32 implementation that wraps esp-idf functionality
 #[derive(DoCommand)]
 pub struct EspBoard {
+    #[cfg(feature = "gpio")]
     pins: Vec<Esp32GPIOPin>,
     #[cfg(feature = "analog")]
     analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = AnalogError>>>>,
@@ -69,6 +77,7 @@ pub struct EspBoard {
 
 impl EspBoard {
     pub fn new(
+        #[cfg(feature = "gpio")]
         pins: Vec<Esp32GPIOPin>,
         #[cfg(feature = "analog")]
         analogs: Vec<Rc<RefCell<dyn AnalogReader<u16, Error = AnalogError>>>>,
@@ -76,6 +85,7 @@ impl EspBoard {
         i2cs: HashMap<String, I2cHandleType>,
     ) -> Self {
         EspBoard {
+            #[cfg(feature = "gpio")]
             pins,
             #[cfg(feature = "analog")]
             analogs,
@@ -212,6 +222,7 @@ impl EspBoard {
         } else {
             vec![]
         };
+        #[cfg(feature = "gpio")]
         let mut pins = if let Ok(pins) = cfg.get_attribute::<Vec<i32>>("pins") {
             pins.iter()
                 .filter_map(|pin| {
@@ -242,6 +253,7 @@ impl EspBoard {
                 i2cs.insert(name.to_string(), i2c_wrapped);
             }
         }
+        #[cfg(feature = "gpio")]
         if let Ok(interrupt_confs) =
             cfg.get_attribute::<Vec<DigitalInterruptConfig>>("digital_interrupts")
         {
@@ -259,6 +271,7 @@ impl EspBoard {
             }
         }
         Ok(Arc::new(Mutex::new(Self {
+            #[cfg(feature = "gpio")]
             pins,
             #[cfg(feature = "analog")]
             analogs,
@@ -269,6 +282,7 @@ impl EspBoard {
 }
 
 impl Board for EspBoard {
+    #[cfg(feature = "gpio")]
     fn set_gpio_pin_level(&mut self, pin: i32, is_high: bool) -> Result<(), BoardError> {
         let p = self.pins.iter_mut().find(|p| p.pin() == pin);
         if let Some(p) = p {
@@ -286,6 +300,7 @@ impl Board for EspBoard {
         }
         Err(BoardError::GpioPinError(pin as u32, "not an output"))
     }
+    #[cfg(feature = "gpio")]
     fn get_gpio_level(&self, pin: i32) -> Result<bool, BoardError> {
         let pin = self
             .pins
@@ -294,12 +309,14 @@ impl Board for EspBoard {
             .ok_or(BoardError::GpioPinError(pin as u32, "not registered"))?;
         Ok(pin.is_high())
     }
+    #[cfg(feature = "gpio")]
     fn get_pwm_duty(&self, pin: i32) -> f64 {
         match self.pins.iter().find(|p| p.pin() == pin) {
             None => 0.0,
             Some(pin) => pin.get_pwm_duty(),
         }
     }
+    #[cfg(feature = "gpio")]
     fn set_pwm_duty(&mut self, pin: i32, duty_cycle_pct: f64) -> Result<(), BoardError> {
         let pin = self
             .pins
@@ -308,6 +325,7 @@ impl Board for EspBoard {
             .ok_or(BoardError::GpioPinError(pin as u32, "not registered"))?;
         pin.set_pwm_duty(duty_cycle_pct)
     }
+    #[cfg(feature = "gpio")]
     fn get_pwm_frequency(&self, pin: i32) -> Result<u64, BoardError> {
         let pin = self
             .pins
@@ -316,6 +334,7 @@ impl Board for EspBoard {
             .ok_or(BoardError::GpioPinError(pin as u32, "not registered"))?;
         Ok(pin.get_pwm_frequency())
     }
+    #[cfg(feature = "gpio")]
     fn set_pwm_frequency(&mut self, pin: i32, frequency_hz: u64) -> Result<(), BoardError> {
         let pin = self
             .pins
@@ -397,6 +416,7 @@ impl Board for EspBoard {
             None => Err(BoardError::I2CBusNotFound(name)),
         }
     }
+    #[cfg(feature = "gpio")]
     fn get_digital_interrupt_value(&self, pin: i32) -> Result<u32, BoardError> {
         let p = self.pins.iter().find(|p| p.pin() == pin);
         if let Some(p) = p {

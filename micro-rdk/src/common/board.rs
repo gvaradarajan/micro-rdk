@@ -31,8 +31,10 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum BoardError {
+    #[cfg(feature = "gpio")]
     #[error("pin {0} error: {1}")]
     GpioPinError(u32, &'static str),
+    #[cfg(feature = "gpio")]
     #[error("pin {0} error: {1}")]
     GpioPinOtherError(u32, Box<dyn std::error::Error + Send + Sync>),
     #[cfg(feature = "analog")]
@@ -66,12 +68,14 @@ pub(crate) fn register_models(registry: &mut ComponentRegistry) {
 
 /// Represents the functionality of a general purpose compute board that contains various components such as analog readers and digital interrupts.
 pub trait Board: Status + DoCommand {
+    #[cfg(feature = "gpio")]
     /// Set a pin to high or low
     fn set_gpio_pin_level(&mut self, pin: i32, is_high: bool) -> Result<(), BoardError>;
 
     /// Return the current [BoardStatus](common::v1::BoardStatus) of the board
     fn get_board_status(&self) -> Result<common::v1::BoardStatus, BoardError>;
 
+    #[cfg(feature = "gpio")]
     /// Get the state of a pin, high(`true`) or low(`false`)
     fn get_gpio_level(&self, pin: i32) -> Result<bool, BoardError>;
 
@@ -93,6 +97,7 @@ pub trait Board: Status + DoCommand {
     /// Get a wrapped [I2CHandle] by name.
     fn get_i2c_by_name(&self, name: String) -> Result<I2cHandleType, BoardError>;
 
+    #[cfg(feature = "gpio")]
     /// Return the amount of detected interrupt events on a pin. Should error if the
     /// pin has not been configured as an interrupt
     fn get_digital_interrupt_value(&self, _pin: i32) -> Result<u32, BoardError> {
@@ -101,15 +106,19 @@ pub trait Board: Status + DoCommand {
         ))
     }
 
+    #[cfg(feature = "gpio")]
     /// Get the pin's given duty cycle, returns percentage as float between 0.0 and 1.0
     fn get_pwm_duty(&self, pin: i32) -> f64;
 
+    #[cfg(feature = "gpio")]
     /// Set the pin to the given duty cycle , `duty_cycle_pct` is a float between 0.0 and 1.0.
     fn set_pwm_duty(&mut self, pin: i32, duty_cycle_pct: f64) -> Result<(), BoardError>;
 
+    #[cfg(feature = "gpio")]
     /// Get the PWM frequency of the pin
     fn get_pwm_frequency(&self, pin: i32) -> Result<u64, BoardError>;
 
+    #[cfg(feature = "gpio")]
     /// Set the pin to the given PWM frequency (in Hz).
     /// When frequency is 0, the board will unregister the pin and PWM channel from
     /// the timer and removes the PWM signal.
@@ -313,10 +322,12 @@ where
         self.lock().unwrap().get_board_status()
     }
 
+    #[cfg(feature = "gpio")]
     fn get_gpio_level(&self, pin: i32) -> Result<bool, BoardError> {
         self.lock().unwrap().get_gpio_level(pin)
     }
 
+    #[cfg(feature = "gpio")]
     fn set_gpio_pin_level(&mut self, pin: i32, is_high: bool) -> Result<(), BoardError> {
         self.lock().unwrap().set_gpio_pin_level(pin, is_high)
     }
@@ -342,22 +353,27 @@ where
         self.lock().unwrap().get_i2c_by_name(name)
     }
 
+    #[cfg(feature = "gpio")]
     fn get_digital_interrupt_value(&self, pin: i32) -> Result<u32, BoardError> {
         self.lock().unwrap().get_digital_interrupt_value(pin)
     }
 
+    #[cfg(feature = "gpio")]
     fn get_pwm_duty(&self, pin: i32) -> f64 {
         self.lock().unwrap().get_pwm_duty(pin)
     }
 
+    #[cfg(feature = "gpio")]
     fn set_pwm_duty(&mut self, pin: i32, duty_cycle_pct: f64) -> Result<(), BoardError> {
         self.lock().unwrap().set_pwm_duty(pin, duty_cycle_pct)
     }
 
+    #[cfg(feature = "gpio")]
     fn get_pwm_frequency(&self, pin: i32) -> Result<u64, BoardError> {
         self.lock().unwrap().get_pwm_frequency(pin)
     }
 
+    #[cfg(feature = "gpio")]
     fn set_pwm_frequency(&mut self, pin: i32, frequency_hz: u64) -> Result<(), BoardError> {
         self.lock().unwrap().set_pwm_frequency(pin, frequency_hz)
     }
