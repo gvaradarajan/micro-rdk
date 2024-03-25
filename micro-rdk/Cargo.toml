@@ -15,7 +15,7 @@ links = "micro_rdk"
 crate-type = ["lib"]
 
 [features]
-default = ["builtin-components"]
+default = ["builtin-components", "data"]
 binstart = ["esp-idf-svc/binstart"]
 libstart = ["esp-idf-svc/libstart"]
 builtin-components = []
@@ -75,6 +75,7 @@ thiserror.workspace = true
 tokio.workspace = true
 trackable.workspace = true
 webpki-roots = { workspace = true, optional = true }
+ringbuf = "0.3.3"
 
 [build-dependencies]
 anyhow.workspace = true
