@@ -57,7 +57,7 @@ pub mod streaming_data_capture_upload_request {
         #[prost(message, tag="1")]
         Metadata(super::DataCaptureUploadMetadata),
         #[prost(bytes, tag="2")]
-        Data(::prost::bytes::Bytes),
+        Data(::prost::alloc::vec::Vec<u8>),
     }
 }
 /// StreamingDataCaptureUploadResponse returns the file id of the uploaded contents and metadata for streaming binary (image + file) data.
@@ -93,15 +93,15 @@ pub mod sensor_data {
         #[prost(message, tag="2")]
         Struct(super::super::super::super::super::google::protobuf::Struct),
         #[prost(bytes, tag="3")]
-        Binary(::prost::bytes::Bytes),
+        Binary(::prost::alloc::vec::Vec<u8>),
     }
 }
 /// FileData contains the contents of binary (image + file) data.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FileData {
-    #[prost(bytes="bytes", tag="1")]
-    pub data: ::prost::bytes::Bytes,
+    #[prost(bytes="vec", tag="1")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
 }
 /// UploadMetadata contains the metadata for binary (image + file) data.
 #[allow(clippy::derive_partial_eq_without_eq)]
