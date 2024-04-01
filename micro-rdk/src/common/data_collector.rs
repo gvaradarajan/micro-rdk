@@ -1,9 +1,12 @@
 use std::fmt::Display;
 
-use crate::proto::app::data_sync::v1::SensorData;
+use crate::proto::app::data_sync::v1::{
+    DataCaptureUploadRequest, DataType, SensorData, UploadMetadata,
+};
 
 use super::{
     config::{AttributeError, Kind},
+    data_store::{DataStore, DataStoreError, StaticMemoryDataStore},
     movement_sensor::MovementSensor,
     robot::ResourceType,
     sensor::{get_sensor_readings_data, SensorError},
@@ -117,6 +120,8 @@ pub enum DataCollectionError {
     NoSupportedMethods,
     #[error(transparent)]
     SensorCollectionError(#[from] SensorError),
+    #[error(transparent)]
+    DataStorageError(#[from] DataStoreError),
     // TODO: remove when error enums for all components are created (RSDK-6909)
     #[error(transparent)]
     MiscCollectionError(#[from] anyhow::Error),
@@ -242,11 +247,6 @@ impl DataCollector {
             _ => return Err(DataCollectionError::NoSupportedMethods),
         })
     }
-
-    // TODO: will call collect_data and store on a cache yet to be implemented
-    // pub fn collect_data(&mut self) -> Result<(), DataCollectionError> {
-
-    // }
 }
 
 #[cfg(test)]

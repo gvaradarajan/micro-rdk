@@ -139,6 +139,13 @@ impl DataStore for StaticMemoryDataStore {
     }
 }
 
+impl Drop for StaticMemoryDataStore {
+    fn drop(&mut self) {
+        self.buffer.clear();
+        DATA_STORE_INITIALIZED.store(false, Ordering::Release);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
