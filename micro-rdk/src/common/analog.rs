@@ -76,7 +76,7 @@ impl TryFrom<&Kind> for AnalogReaderConfig {
     }
 }
 
-pub type AnalogReaderType<W, E = AnalogError> = Arc<Mutex<dyn AnalogReader<W, Error = E>>>;
+pub type AnalogReaderType<W, E = AnalogError> = Arc<Mutex<dyn AnalogReader<W, Error = E> + Send>>;
 
 #[cfg(test)]
 mod tests {

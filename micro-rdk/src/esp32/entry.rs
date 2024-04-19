@@ -8,19 +8,17 @@ use std::{
 };
 
 use crate::common::{
-    app_client::{AppClientBuilder, AppClientConfig},
-    conn::{
+    app_client::{self, AppClientBuilder, AppClientConfig}, conn::{
         mdns::NoMdns,
         server::{ViamServerBuilder, WebRtcConfiguration},
-    },
-    entry::RobotRepresentation,
-    grpc_client::GrpcClient,
-    log::config_log_entry,
-    robot::LocalRobot,
+    }, data_manager::get_data_sync_interval, entry::RobotRepresentation, grpc_client::GrpcClient, log::config_log_entry, robot::LocalRobot
 };
 
 #[cfg(feature = "data")]
 use crate::common::{data_manager::DataManager, data_store::StaticMemoryDataStore};
+
+use crate::esp32::esp_idf_svc::hal::task::thread::ThreadSpawnConfiguration;
+use crate::esp32::esp_idf_svc::hal::cpu::Core;
 
 use super::{
     certificate::WebRtcCertificate,
@@ -117,6 +115,9 @@ pub async fn serve_web_inner(
 
     #[cfg(feature = "data")]
     let part_id = app_config.get_robot_id();
+    // let cloned_cfg = cfg_response.clone();
+
+    let sync_interval = get_data_sync_interval(&cfg_response).expect("error parsing data config");
 
     let mut srv = Box::new(
         ViamServerBuilder::new(
@@ -131,34 +132,64 @@ pub async fn serve_web_inner(
         .unwrap(),
     );
 
+    let app_client = srv.signaling_client();
     #[cfg(feature = "data")]
-    // TODO: Support implementers of the DataStore trait other than StaticMemoryDataStore in a way that is configurable
-    let data_manager_svc = DataManager::<StaticMemoryDataStore>::from_robot_and_config(
-        &cfg_response,
-        part_id,
-        robot.clone(),
-        srv.signaling_client()
-    ).expect("could not create data manager");
-
-    #[cfg(feature = "data")]
-    let data_future = async move {
-        if let Some(mut data_manager_svc) = data_manager_svc {
-            if let Err(err) = data_manager_svc.run().await {
-                log::error!("error running data manager: {:?}", err)
-            }
+    let handle = {
+        ThreadSpawnConfiguration {
+            name: Some(b"data_task\0"),
+            stack_size: 12288,
+            priority: 20,
+            pin_to_core: Some(Core::Core1),
+            ..Default::default()
         }
+        .set()
+        .unwrap();
+
+        let cloned_robot = robot.clone();
+        let app_client_clone = app_client.clone();
+        let handle = std::thread::Builder::new().stack_size(12288).spawn(|| {
+            // let cloned_cfg = cfg_response.clone();
+            let sync_interval = sync_interval.unwrap_or_else(|| Duration::from_secs(60) );
+            // TODO: Support implementers of the DataStore trait other than StaticMemoryDataStore in a way that is configurable
+            let data_manager_svc = DataManager::<StaticMemoryDataStore>::from_robot_and_config(
+                // &cloned_cfg,
+                sync_interval,
+                part_id,
+                cloned_robot,
+                app_client_clone
+            ).expect("could not create data manager");
+            if let Some(mut data_manager_svc) = data_manager_svc {
+                if let Err(err) = async_io::block_on(data_manager_svc.run()) {
+                    log::error!("error running data manager: {:?}", err)
+                }
+            }
+        }).expect("wtf?");
+
+        ThreadSpawnConfiguration::default().set().unwrap();
+        handle
     };
-    #[cfg(not(feature = "data"))]
-    let data_future = async move {};
+    
+    // #[cfg(feature = "data")]
+    // let data_future = async move {
+    //     if let Some(mut data_manager_svc) = data_manager_svc {
+    //         if let Err(err) = data_manager_svc.run().await {
+    //             log::error!("error running data manager: {:?}", err)
+    //         }
+    //     }
+    // };
+    // #[cfg(not(feature = "data"))]
+    // let data_future = async move {};
 
-    let server_future = async move {
-        srv.serve(robot).await;
-    };
+    // let server_future = async move {
+    //     srv.serve(robot).await;
+    // };
 
-    log::info!("in serve_web_inner");
-    esp32_print_stack_high_watermark!();
+    // log::info!("in serve_web_inner");
+    // esp32_print_stack_high_watermark!();
 
-    futures_lite::future::zip(server_future, data_future).await;
+    // futures_lite::future::zip(server_future, data_future).await;
+    srv.serve(robot).await;
+    handle.join().expect("wtf? 2");
 }
 
 pub fn serve_web(

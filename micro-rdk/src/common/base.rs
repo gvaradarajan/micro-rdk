@@ -15,7 +15,7 @@ pub trait Base: Status + Actuator + DoCommand {
     fn set_power(&mut self, lin: &Vector3, ang: &Vector3) -> Result<(), BaseError>;
 }
 
-pub type BaseType = Arc<Mutex<dyn Base>>;
+pub type BaseType = Arc<Mutex<dyn Base + Send>>;
 
 #[derive(Error, Debug)]
 pub enum BaseError {

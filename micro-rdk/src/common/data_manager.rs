@@ -39,7 +39,7 @@ pub enum DataManagerError {
     AppClientError(#[from] AppClientError)
 }
 
-fn get_data_sync_interval(cfg: &ConfigResponse) -> Result<Option<Duration>, DataManagerError> {
+pub fn get_data_sync_interval(cfg: &ConfigResponse) -> Result<Option<Duration>, DataManagerError> {
     let robot_config = cfg.config.clone().ok_or(DataManagerError::ConfigError)?;
     let num_configs_detected = robot_config
         .services
@@ -123,22 +123,29 @@ where
     }
 
     pub fn from_robot_and_config(
-        cfg: &ConfigResponse,
+        // cfg: &ConfigResponse,
+        sync_interval: Duration,
         part_id: String,
         robot: Arc<std::sync::Mutex<LocalRobot>>,
         app_client: Arc<Mutex<Option<AppClient<'a>>>>
     ) -> Result<Option<Self>, DataManagerError> {
-        let sync_interval = get_data_sync_interval(cfg)?;
-        if let Some(sync_interval) = sync_interval {
-            let collectors = robot.lock().unwrap().data_collectors()?;
-            let collector_keys: Vec<ResourceMethodKey> =
-                collectors.iter().map(|c| c.resource_method_key()).collect();
-            let store = StoreType::from_resource_method_keys(collector_keys)?;
-            let data_manager_svc = DataManager::new(collectors, store, sync_interval, part_id, app_client)?;
-            Ok(Some(data_manager_svc))
-        } else {
-            Ok(None)
-        }
+        // let sync_interval = get_data_sync_interval(cfg)?;
+        // if let Some(sync_interval) = sync_interval {
+        //     let collectors = robot.lock().unwrap().data_collectors()?;
+        //     let collector_keys: Vec<ResourceMethodKey> =
+        //         collectors.iter().map(|c| c.resource_method_key()).collect();
+        //     let store = StoreType::from_resource_method_keys(collector_keys)?;
+        //     let data_manager_svc = DataManager::new(collectors, store, sync_interval, part_id, app_client)?;
+        //     Ok(Some(data_manager_svc))
+        // } else {
+        //     Ok(None)
+        // }
+        let collectors = robot.lock().unwrap().data_collectors()?;
+        let collector_keys: Vec<ResourceMethodKey> =
+            collectors.iter().map(|c| c.resource_method_key()).collect();
+        let store = StoreType::from_resource_method_keys(collector_keys)?;
+        let data_manager_svc = DataManager::new(collectors, store, sync_interval, part_id, app_client)?;
+        Ok(Some(data_manager_svc))
     }
 
     pub fn sync_interval_ms(&self) -> u64 {

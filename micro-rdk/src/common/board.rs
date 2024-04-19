@@ -100,7 +100,7 @@ pub trait Board: Status + DoCommand {
 }
 
 /// An alias for a thread-safe handle to a struct that implements the [Board] trait
-pub type BoardType = Arc<Mutex<dyn Board>>;
+pub type BoardType = Arc<Mutex<dyn Board + Send>>;
 
 #[doc(hidden)]
 /// A test implementation of a generic compute board

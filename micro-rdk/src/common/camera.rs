@@ -23,7 +23,7 @@ pub trait Camera {
     fn get_frame(&mut self, buffer: BytesMut) -> Result<BytesMut, CameraError>;
 }
 
-pub(crate) type CameraType = Arc<Mutex<dyn Camera>>;
+pub(crate) type CameraType = Arc<Mutex<dyn Camera + Send>>;
 
 pub struct FakeCamera {}
 

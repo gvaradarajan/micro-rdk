@@ -146,7 +146,7 @@ pub trait SingleEncoder: Encoder {
     fn get_direction(&self) -> Result<Direction, EncoderError>;
 }
 
-pub(crate) type EncoderType = Arc<Mutex<dyn Encoder>>;
+pub(crate) type EncoderType = Arc<Mutex<dyn Encoder + Send>>;
 
 #[cfg(feature = "builtin-components")]
 #[derive(DoCommand)]

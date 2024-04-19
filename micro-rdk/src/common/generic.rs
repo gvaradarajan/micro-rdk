@@ -70,7 +70,7 @@ where
 
 pub trait GenericComponent: DoCommand + Status {}
 
-pub type GenericComponentType = Arc<Mutex<dyn GenericComponent>>;
+pub type GenericComponentType = Arc<Mutex<dyn GenericComponent + Send>>;
 
 impl<L> GenericComponent for Mutex<L> where L: ?Sized + GenericComponent {}
 

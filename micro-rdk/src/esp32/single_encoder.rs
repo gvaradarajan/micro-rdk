@@ -42,7 +42,7 @@ const MAX_GLITCH_MICROSEC: u16 = 1;
 
 // TODO: Move this type to common once we have a single encoder
 // implementation for another board
-pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder>>;
+pub(crate) type SingleEncoderType = Arc<Mutex<dyn SingleEncoder + Send>>;
 
 struct PulseStorage {
     acc: Arc<AtomicI32>,

@@ -22,7 +22,7 @@ pub trait Servo: Status + Actuator + DoCommand {
     fn get_position(&mut self) -> Result<u32, ServoError>;
 }
 
-pub type ServoType = Arc<Mutex<dyn Servo>>;
+pub type ServoType = Arc<Mutex<dyn Servo + Send>>;
 
 impl<L> Servo for Mutex<L>
 where

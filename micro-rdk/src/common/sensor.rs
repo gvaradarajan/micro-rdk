@@ -102,7 +102,7 @@ pub trait Readings {
 
 pub trait Sensor: Readings + Status + DoCommand {}
 
-pub type SensorType = Arc<Mutex<dyn Sensor>>;
+pub type SensorType = Arc<Mutex<dyn Sensor + Send>>;
 
 pub trait SensorT<T>: Sensor {
     fn get_readings(&self) -> Result<TypedReadingsResult<T>, SensorError>;

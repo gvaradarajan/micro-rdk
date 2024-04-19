@@ -111,7 +111,7 @@ pub trait Motor: Status + Actuator + DoCommand {
     fn get_properties(&mut self) -> MotorSupportedProperties;
 }
 
-pub type MotorType = Arc<Mutex<dyn Motor>>;
+pub type MotorType = Arc<Mutex<dyn Motor + Send>>;
 
 #[derive(Debug)]
 pub enum MotorPinType {
