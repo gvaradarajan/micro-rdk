@@ -128,7 +128,7 @@ pub async fn serve_web_inner(
             max_webrtc_connection,
         )
         .with_webrtc(webrtc)
-        .build(&cfg_response)
+        .build(cfg_response.clone())
         .unwrap(),
     );
 
@@ -147,8 +147,10 @@ pub async fn serve_web_inner(
 
         let cloned_robot = robot.clone();
         let app_client_clone = app_client.clone();
-        let handle = std::thread::Builder::new().stack_size(12288).spawn(|| {
+        let handle = std::thread::Builder::new().stack_size(12288).spawn(move || {
             // let cloned_cfg = cfg_response.clone();
+            let app_client_clone = app_client_clone;
+            // let sync_interval = sync_interval;
             let sync_interval = sync_interval.unwrap_or_else(|| Duration::from_secs(60) );
             // TODO: Support implementers of the DataStore trait other than StaticMemoryDataStore in a way that is configurable
             let data_manager_svc = DataManager::<StaticMemoryDataStore>::from_robot_and_config(
@@ -163,6 +165,7 @@ pub async fn serve_web_inner(
                     log::error!("error running data manager: {:?}", err)
                 }
             }
+            // loop {}
         }).expect("wtf?");
 
         ThreadSpawnConfiguration::default().set().unwrap();
@@ -189,7 +192,7 @@ pub async fn serve_web_inner(
 
     // futures_lite::future::zip(server_future, data_future).await;
     srv.serve(robot).await;
-    handle.join().expect("wtf? 2");
+    // handle.join().expect("wtf? 2");
 }
 
 pub fn serve_web(

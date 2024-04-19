@@ -171,10 +171,10 @@ where
             max_connections: self.max_connections,
         }
     }
-    pub fn build(
+    pub fn build<'a>(
         mut self,
-        config: &ConfigResponse,
-    ) -> Result<ViamServer<C, T, CC, D, L>, ServerError> {
+        config: Box<ConfigResponse>,
+    ) -> Result<ViamServer<'a, C, T, CC, D, L>, ServerError> {
         let cfg: RobotCloudConfig = config
             .config
             .as_ref()
@@ -189,18 +189,20 @@ where
         self.mdns
             .set_hostname(&cfg.name)
             .map_err(|e| ServerError::Other(e.into()))?;
+        let local_fqdn = cfg.local_fqdn.clone();
         self.mdns
             .add_service(
-                &cfg.local_fqdn.replace('.', "-"),
+                &local_fqdn.replace('.', "-"),
                 "_rpc",
                 "_tcp",
                 self.port,
                 &[("grpc", "")],
             )
             .map_err(|e| ServerError::Other(e.into()))?;
+        let fqdn = cfg.fqdn.clone();
         self.mdns
             .add_service(
-                &cfg.fqdn.replace('.', "-"),
+                &fqdn.replace('.', "-"),
                 "_rpc",
                 "_tcp",
                 self.port,
