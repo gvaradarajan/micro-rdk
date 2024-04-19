@@ -317,20 +317,33 @@ where
         loop {
             let _ = async_io::Timer::after(std::time::Duration::from_millis(300)).await;
 
+            log::info!("in serve loop");
+            crate::esp32::utils::esp32_print_stack_high_watermark!();
+
             if self.app_client.lock().await.is_none() {
                 let conn = self.app_connector.connect().await.unwrap();
                 let cloned_exec = self.exec.clone();
+                log::info!("in serve loop 1.1");
+                crate::esp32::utils::esp32_print_stack_high_watermark!();
                 let grpc_client = Box::new(
                     GrpcClient::new(conn, cloned_exec, "https://app.viam.com:443")
                         .await
                         .unwrap(),
                 );
+                log::info!("in serve loop 1.2");
+                crate::esp32::utils::esp32_print_stack_high_watermark!();
                 let app_client = AppClientBuilder::new(grpc_client, self.app_config.clone())
                     .build()
                     .await
                     .unwrap();
+
+                    log::info!("in serve loop 1.3");
+                    crate::esp32::utils::esp32_print_stack_high_watermark!();
                 let _ = self.app_client.lock().await.insert(app_client);
             }
+            log::info!("in serve loop 2");
+            crate::esp32::utils::esp32_print_stack_high_watermark!();
+
             let mut app_client_guard = self.app_client.lock().await;
             let app_client = app_client_guard.as_mut().unwrap();
             let sig = if let Some(webrtc_config) = self.webrtc_config.as_ref() {
@@ -351,6 +364,9 @@ where
             };
 
             let listener = self.http_listener.next_conn();
+
+            log::info!("in serve loop 3");
+            crate::esp32::utils::esp32_print_stack_high_watermark!();
 
             log::info!("waiting for connection");
 

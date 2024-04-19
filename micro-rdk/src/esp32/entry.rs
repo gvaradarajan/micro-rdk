@@ -27,7 +27,7 @@ use super::{
     dtls::Esp32DtlsBuilder,
     exec::Esp32Executor,
     tcp::Esp32Stream,
-    tls::{Esp32TLS, Esp32TLSServerConfig},
+    tls::{Esp32TLS, Esp32TLSServerConfig}, utils::esp32_print_stack_high_watermark,
 };
 
 use async_io::Timer;
@@ -154,6 +154,9 @@ pub async fn serve_web_inner(
     let server_future = async move {
         srv.serve(robot).await;
     };
+
+    log::info!("in serve_web_inner");
+    esp32_print_stack_high_watermark!();
 
     futures_lite::future::zip(server_future, data_future).await;
 }

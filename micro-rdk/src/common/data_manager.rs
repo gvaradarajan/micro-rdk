@@ -178,6 +178,9 @@ where
 
     async fn run_inner(&mut self, loop_counter: u64, force_read: bool) -> Result<(), DataManagerError> {
         let min_interval_ms = self.min_interval_ms();
+        log::info!("in data task loop");
+        crate::esp32::utils::esp32_print_stack_high_watermark!();
+        log::info!("data task iteration {:?}", loop_counter);
         if (loop_counter % (self.sync_interval_ms() / min_interval_ms)) == 0 && (loop_counter != 0)
         {
             if let Err(err) = self.sync(force_read).await {
@@ -185,11 +188,12 @@ where
             }
         }
         for interval in self.collection_intervals() {
-            println!("here");
             if loop_counter % (interval / min_interval_ms) == 0 {
                 self.collect_and_store_readings(interval)?;
             }
         }
+        log::info!("in data task loop 2");
+        crate::esp32::utils::esp32_print_stack_high_watermark!();
         Ok(())
     }
 

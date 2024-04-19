@@ -51,7 +51,6 @@ pub(crate) use esp32_print_heap_spiram_summary;
 
 macro_rules! esp32_print_stack_high_watermark {
     () => {
-        #[cfg(debug_assertions)]
         {
             use $crate::esp32::esp_idf_svc::sys::uxTaskGetStackHighWaterMark;
             log::info!("stack high watermark is {:#X}", unsafe {
