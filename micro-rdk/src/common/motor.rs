@@ -93,19 +93,23 @@ impl From<MotorSupportedProperties> for GetPropertiesResponse {
 }
 
 pub trait Motor: Status + Actuator + DoCommand {
+    
     /// Sets the percentage of the motor's total power that should be employed.
     /// expressed a value between `-1.0` and `1.0` where negative values indicate a backwards
     /// direction and positive values a forward direction.
     fn set_power(&mut self, pct: f64) -> Result<(), MotorError>;
+
     /// Reports the position of the robot's motor relative to its zero position.
     /// This method will return an error if position reporting is not supported.
     fn get_position(&mut self) -> Result<i32, MotorError>;
+
     /// Instructs the motor to turn at a specified speed, which is expressed in RPM,
     /// for a specified number of rotations relative to its starting position.
     /// This method will return an error if position reporting is not supported.
     /// If revolutions is 0, this will run the motor at rpm indefinitely.
     /// If revolutions != 0, this will block until the number of revolutions has been completed or another operation comes in.
     fn go_for(&mut self, rpm: f64, revolutions: f64) -> Result<Option<Duration>, MotorError>;
+
     // Instructs the motor to turn at the specified RPM. The default behavior is to call go_for
     // with 0.0 revolutions, so this functionality must be overwritten if the implementation of go_for
     // is different from the behavior described above (or if custom logic is required)
@@ -113,6 +117,7 @@ pub trait Motor: Status + Actuator + DoCommand {
         let _ = self.go_for(rpm, 0.0)?;
         Ok(())
     }
+
     /// Returns an instance of MotorSupportedProperties indicating the optional properties
     /// supported by this motor
     fn get_properties(&mut self) -> MotorSupportedProperties;
