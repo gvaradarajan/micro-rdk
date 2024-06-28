@@ -106,6 +106,13 @@ pub trait Motor: Status + Actuator + DoCommand {
     /// If revolutions is 0, this will run the motor at rpm indefinitely.
     /// If revolutions != 0, this will block until the number of revolutions has been completed or another operation comes in.
     fn go_for(&mut self, rpm: f64, revolutions: f64) -> Result<Option<Duration>, MotorError>;
+    // Instructs the motor to turn at the specified RPM. The default behavior is to call go_for
+    // with 0.0 revolutions, so this functionality must be overwritten if the implementation of go_for
+    // is different from the behavior described above (or if custom logic is required)
+    fn set_rpm(&mut self, rpm: f64) -> Result<(), MotorError> {
+        let _ = self.go_for(rpm, 0.0)?;
+        Ok(())
+    }
     /// Returns an instance of MotorSupportedProperties indicating the optional properties
     /// supported by this motor
     fn get_properties(&mut self) -> MotorSupportedProperties;
@@ -247,6 +254,9 @@ where
     fn go_for(&mut self, rpm: f64, revolutions: f64) -> Result<Option<Duration>, MotorError> {
         self.get_mut().unwrap().go_for(rpm, revolutions)
     }
+    fn set_rpm(&mut self, rpm: f64) -> Result<(), MotorError> {
+        self.get_mut().unwrap().set_rpm(rpm)
+    }
     fn get_properties(&mut self) -> MotorSupportedProperties {
         self.get_mut().unwrap().get_properties()
     }
@@ -264,6 +274,9 @@ where
     }
     fn go_for(&mut self, rpm: f64, revolutions: f64) -> Result<Option<Duration>, MotorError> {
         self.lock().unwrap().go_for(rpm, revolutions)
+    }
+    fn set_rpm(&mut self, rpm: f64) -> Result<(), MotorError> {
+        self.lock().unwrap().set_rpm(rpm)
     }
     fn get_properties(&mut self) -> MotorSupportedProperties {
         self.lock().unwrap().get_properties()
