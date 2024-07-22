@@ -6,7 +6,7 @@ use std::{
 };
 
 use bytes::{Bytes, BytesMut};
-use futures_lite::AsyncReadExt;
+use futures_lite::{AsyncReadExt, Future};
 use prost::Message;
 
 use crate::{
@@ -80,7 +80,7 @@ pub struct WebRtcGrpcServer<S> {
 }
 
 pub trait WebRtcGrpcService {
-    fn unary_rpc(&mut self, method: &str, data: &Bytes) -> Result<Bytes, ServerError>;
+    fn unary_rpc(&mut self, method: &str, data: &Bytes) -> impl Future<Output = Result<Bytes, ServerError>>;
     fn server_stream_rpc(
         &mut self,
         method: &str,
@@ -137,7 +137,7 @@ where
                     Err(e) => (e.to_status(), None),
                 }
             } else {
-                match self.service.unary_rpc(method, &pkt.data) {
+                match self.service.unary_rpc(method, &pkt.data).await {
                     Ok(data) => {
                         self.send_rpc_response(data, stream).await?;
                         (

@@ -424,6 +424,7 @@ where
                     },
                     async {
                         timeout.await;
+                        log::info!("TIMEOUT");
                         log::debug!("TIMEOUT");
                         SctpEvent::Timeout(Instant::now())
                     },

@@ -224,11 +224,7 @@ impl<'a> GrpcServerInner<'a> {
         }
     }
 
-    pub(crate) fn handle_request(
-        &mut self,
-        path: &str,
-        payload: &[u8],
-    ) -> Result<Bytes, ServerError> {
+    pub(crate) async fn handle_request(&mut self, path: &str, payload: &[u8]) -> Result<Bytes, ServerError> {
         match path {
             "/viam.component.base.v1.BaseService/SetPower" => self.base_set_power(payload),
             "/viam.component.base.v1.BaseService/Stop" => self.base_stop(payload),
@@ -271,7 +267,7 @@ impl<'a> GrpcServerInner<'a> {
             "/viam.component.motor.v1.MotorService/GetProperties" => {
                 self.motor_get_properties(payload)
             }
-            "/viam.component.motor.v1.MotorService/GoFor" => self.motor_go_for(payload),
+            "/viam.component.motor.v1.MotorService/GoFor" => self.motor_go_for(payload).await,
             "/viam.component.motor.v1.MotorService/GoTo" => self.motor_go_to(payload),
             "/viam.component.motor.v1.MotorService/IsPowered" => self.motor_is_powered(payload),
             "/viam.component.motor.v1.MotorService/IsMoving" => self.motor_is_moving(payload),
@@ -358,6 +354,20 @@ impl<'a> GrpcServerInner<'a> {
         }
     }
 
+    async fn process_request(&mut self, path: &str, msg: Bytes) {
+        let payload = Self::validate_rpc(&msg).map_err(ServerError::from);
+        let fut = match payload {
+            Ok(payload) => {
+                self.handle_request(path, payload).await
+            },
+            Err(err) => Err(err)
+        };
+        if let Err(e) = fut {
+            let message = Some(e.to_string());
+            self.response.set_status(e.status_code(), message);
+        }
+    }
+
     fn motor_get_position(&mut self, message: &[u8]) -> Result<Bytes, ServerError> {
         let req = component::motor::v1::GetPositionRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
@@ -388,10 +398,10 @@ impl<'a> GrpcServerInner<'a> {
         self.encode_message(props)
     }
 
-    fn motor_go_for(&mut self, _message: &[u8]) -> Result<Bytes, ServerError> {
+    async fn motor_go_for(&mut self, message: &[u8]) -> Result<Bytes, ServerError> {
         // TODO: internal go_for can't wait without blocking executor, must be waited from here.
         // requires refactoring this function (and its callers) to be async
-        /*
+        
         let req = component::motor::v1::GoForRequest::decode(message)
             .map_err(|_| ServerError::from(GrpcError::RpcInvalidArgument))?;
         let motor = match self.robot.lock().unwrap().get_motor_by_name(req.name) {
@@ -400,15 +410,16 @@ impl<'a> GrpcServerInner<'a> {
         };
         let mut motor = motor.lock().unwrap();
 
-        if let Some(dur) =  motor.go_for(req.rpm, req.revolutions).map_err(|err| ServerError::new(GrpcError::RpcInternal, Some(err)))? {
+        if let Some(dur) =  motor.go_for(req.rpm, req.revolutions).map_err(|err| ServerError::new(GrpcError::RpcInternal, Some(err.into())))? {
             // async wait for duration
+            async_io::Timer::after(dur).await;
+            motor.stop().map_err(|err| ServerError::new(GrpcError::RpcInternal, Some(err.into())))?;
         }
-        motor.lock().unwrap();
 
         let resp = component::motor::v1::GoForResponse {};
         self.encode_message(resp)
-        */
-        Err(ServerError::from(GrpcError::RpcUnimplemented))
+        
+        // Err(ServerError::from(GrpcError::RpcUnimplemented))
     }
 
     fn motor_go_to(&mut self, _message: &[u8]) -> Result<Bytes, ServerError> {
@@ -1430,7 +1441,7 @@ impl<R> WebRtcGrpcService for GrpcServer<R>
 where
     R: GrpcResponse + 'static,
 {
-    fn unary_rpc(&mut self, method: &str, data: &Bytes) -> Result<Bytes, ServerError> {
+    fn unary_rpc(&mut self, method: &str, data: &Bytes) -> impl Future<Output = Result<Bytes, ServerError>> {
         {
             RefCell::borrow_mut(&self.buffer).reserve(GRPC_BUFFER_SIZE);
         }
@@ -1438,8 +1449,12 @@ where
             buffer: &self.buffer,
             robot: &self.robot,
         };
-        grpc.handle_request(method, data)
-            .map(|mut b| b.split_off(5))
+        // grpc.handle_request(method, data)
+        //     .map(|mut b| b.split_off(5))
+        // log::info!("unary");
+        async move {
+            grpc.handle_request(method, data).map(|mut b| b.split_off(5))
+        }
     }
     fn server_stream_rpc(
         &mut self,
@@ -1474,6 +1489,7 @@ where
             RefCell::borrow_mut(&self.buffer).reserve(GRPC_BUFFER_SIZE);
         }
         let mut svc = self.clone();
+        log::info!("processing {:?}", req);
         #[cfg(debug_assertions)]
         log::debug!("processing {:?}", req);
         Box::pin(async move {
@@ -1488,7 +1504,7 @@ where
                 Some(path) => path.as_str(),
                 None => return Err(GrpcError::RpcInvalidArgument),
             };
-            svc.process_request(path, msg);
+            svc.process_request(path, msg).await;
             Response::builder()
                 .header("content-type", "application/grpc")
                 .status(200)

@@ -27,7 +27,7 @@ impl<'a> PeriodicAppClientTask for RestartMonitor<'a> {
     }
 
     fn get_default_period(&self) -> Duration {
-        Duration::from_secs(5)
+        Duration::from_secs(1)
     }
 
     fn invoke<'c, 'b: 'c>(
@@ -35,6 +35,7 @@ impl<'a> PeriodicAppClientTask for RestartMonitor<'a> {
         app_client: &'c AppClient,
     ) -> Pin<Box<dyn Future<Output = Result<Option<Duration>, AppClientError>> + 'c>> {
         Box::pin(async move {
+            println!("hello, I am still here");
             match app_client.check_for_restart().await {
                 Ok(None) => self.restart(),
                 other => other,
