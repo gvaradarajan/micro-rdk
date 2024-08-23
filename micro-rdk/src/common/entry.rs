@@ -206,9 +206,8 @@ pub async fn serve_inner<S>(
             *(cfg_response.clone()),
             storage.clone(),
             restart,
-        )));
-
-    let server_builder = server_builder.with_periodic_app_client_task(Box::new(LogUploadTask {}));
+        )))
+        .with_periodic_app_client_task(Box::new(LogUploadTask {}));
 
     #[cfg(feature = "native")]
     let server_builder = {
