@@ -12,17 +12,21 @@ use crate::{
 
 use esp_idf_svc::log::EspLogger;
 use esp_idf_svc::sys::{esp_log_set_vprintf, va_list, vprintf_like_t};
-use lazy_static::lazy_static;
 use printf_compat::output::display;
 use ringbuf::Rb;
-use std::{collections::HashMap, time::Instant};
+use std::{collections::HashMap, sync::OnceLock, time::Instant};
 use std::{ffi::c_char, sync::Mutex};
 
 use crate::common::log::{get_log_buffer, ViamLogAdapter};
 
-lazy_static! {
-    static ref PREVIOUS_LOGGER: Mutex<vprintf_like_t> = Mutex::new(None);
-    static ref CURRENT_LOG_STATEMENT: Mutex<Vec<String>> = Mutex::new(vec![]);
+fn previous_logger() -> &'static Mutex<vprintf_like_t> {
+    static PREVIOUS_LOGGER: OnceLock<Mutex<vprintf_like_t>> = OnceLock::new();
+    PREVIOUS_LOGGER.get_or_init(|| Mutex::new(None))
+}
+
+fn current_log_statement() -> &'static Mutex<Vec<String>> {
+    static CURRENT_LOG_STATEMENT: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
+    CURRENT_LOG_STATEMENT.get_or_init(|| Mutex::new(vec![]))
 }
 
 // A single log statement is often broken up into multiple calls to vprintf. So we store
@@ -44,14 +48,16 @@ unsafe extern "C" fn log_handler(arg1: *const c_char, arg2: va_list) -> i32 {
     let start_of_new_statement = (message_clone.len() >= 3)
         && (matches!(&message_clone[..3], "I (" | "E (" | "W (" | "D (" | "V (")
             || message_clone.starts_with("\x1b[0;"));
-    let mut current_fragments = CURRENT_LOG_STATEMENT.lock().unwrap();
+    let mut current_fragments = current_log_statement().lock().unwrap();
     if start_of_new_statement && !current_fragments.is_empty() {
         let full_message = current_fragments.join(" ");
-        let _ = get_log_buffer().push_overwrite(process_current_statement_and_level(full_message));
+        let _ = get_log_buffer()
+            .lock_blocking()
+            .push_overwrite(process_current_statement_and_level(full_message));
         current_fragments.clear();
     }
     current_fragments.push(message_clone);
-    if let Some(prev_logger) = *(PREVIOUS_LOGGER.lock().unwrap()) {
+    if let Some(prev_logger) = *(previous_logger().lock().unwrap()) {
         prev_logger(arg1, arg2)
     } else {
         0
@@ -112,7 +118,7 @@ fn process_current_statement_and_level(mut full_message: String) -> (LogEntry, I
 
 impl ViamLogAdapter for EspLogger {
     fn before_log_setup(&self) {
-        let mut guard = PREVIOUS_LOGGER.lock().unwrap();
+        let mut guard = previous_logger().lock().unwrap();
         *guard = unsafe { esp_log_set_vprintf(Some(log_handler)) };
         self.initialize();
     }

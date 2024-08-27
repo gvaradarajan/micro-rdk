@@ -2,13 +2,13 @@ use crate::{
     google::protobuf::{value::Kind, Struct, Timestamp, Value},
     proto::common::v1::LogEntry,
 };
-use async_lock::{Mutex as AsyncMutex, MutexGuard as AsyncMutexGuard};
+use async_lock::Mutex as AsyncMutex;
 use chrono::Local;
-use lazy_static::lazy_static;
 use ringbuf::{LocalRb, Rb};
 use std::{
     collections::HashMap,
     mem::MaybeUninit,
+    sync::OnceLock,
     time::{Duration, Instant},
 };
 
@@ -19,16 +19,12 @@ type LogBufferType = LocalRb<(LogEntry, Instant), Vec<MaybeUninit<(LogEntry, Ins
 // We need a static buffer of logs on the heap, but because we cannot guarantee that the current time has been set
 // at every instance of logging, we store each log along side an instance of Instant. We assume that current time
 // has been set on the system by the time an AppClient is available for uploading the logs and so use the Instant
-// to correct the timestamp on the LogEntry. We've chosen a size of 50 for the buffer due to a roughly observed maximum of 200
-// bytes per log message and a desire to restrict the total amount of space for the cache to 10KB. The consequence is that,
-// when the device is offline, we will cache the last 50 logs.
-lazy_static! {
-    static ref LOG_BUFFER: AsyncMutex<LogBufferType> = AsyncMutex::new(LocalRb::new(50));
-}
-
-#[allow(dead_code)]
-pub(crate) fn get_log_buffer() -> AsyncMutexGuard<'static, LogBufferType> {
-    LOG_BUFFER.lock_blocking()
+// to correct the timestamp on the LogEntry. We've chosen a size of 150 for the buffer due to a roughly observed maximum of 200
+// bytes per log message and a desire to restrict the total amount of space for the cache to 30KB without losing logs
+// to ring buffer overwriting between uploads. The consequence is that, when the device is offline, we will cache the last 150 logs.
+pub(crate) fn get_log_buffer() -> &'static AsyncMutex<LogBufferType> {
+    static LOG_BUFFER: OnceLock<AsyncMutex<LogBufferType>> = OnceLock::new();
+    LOG_BUFFER.get_or_init(|| AsyncMutex::new(LocalRb::new(150)))
 }
 
 pub(crate) struct LogUploadTask {}
@@ -51,7 +47,7 @@ impl PeriodicAppClientTask for LogUploadTask {
         >,
     > {
         Box::pin(async move {
-            let mut logs = LOG_BUFFER.lock().await;
+            let mut logs = get_log_buffer().lock().await;
             if logs.len() > 0 {
                 app_client
                     .push_logs(
@@ -181,7 +177,7 @@ where
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
             self.0.log(record);
-            let mut buffer = LOG_BUFFER.lock_blocking();
+            let mut buffer = get_log_buffer().lock_blocking();
             let _ = buffer.push_overwrite((record.into(), Instant::now()));
         }
     }
