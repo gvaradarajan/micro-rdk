@@ -21,7 +21,7 @@ use super::{
     exec::Executor,
     grpc::ServerError,
     grpc_client::GrpcClient,
-    log::LogUploadTask,
+    log::{LogGeneratorA, LogGeneratorB, LogGeneratorC, LogUploadTask},
     provisioning::server::{serve_provisioning_async, ProvisioningInfo},
     registry::ComponentRegistry,
     restart_monitor::RestartMonitor,
@@ -207,7 +207,10 @@ pub async fn serve_inner<S>(
             storage.clone(),
             restart,
         )))
-        .with_periodic_app_client_task(Box::new(LogUploadTask {}));
+        .with_periodic_app_client_task(Box::new(LogUploadTask {}))
+        .with_periodic_app_client_task(Box::new(LogGeneratorA {}))
+        .with_periodic_app_client_task(Box::new(LogGeneratorB {}))
+        .with_periodic_app_client_task(Box::new(LogGeneratorC {}));
 
     #[cfg(feature = "native")]
     let server_builder = {

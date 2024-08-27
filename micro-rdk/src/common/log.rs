@@ -4,6 +4,7 @@ use crate::{
 };
 use async_lock::Mutex as AsyncMutex;
 use chrono::Local;
+use rand::Rng;
 use ringbuf::{LocalRb, Rb};
 use std::{
     collections::HashMap,
@@ -205,5 +206,68 @@ where
             let mut buffer = get_log_buffer().lock_blocking();
             let _ = buffer.push_overwrite(ViamLogEntry::from_record(record));
         }
+    }
+}
+
+pub(crate) struct LogGeneratorA {}
+
+impl PeriodicAppClientTask for LogGeneratorA {
+    fn get_default_period(&self) -> Duration {
+        Duration::from_millis(30)
+    }
+    fn name(&self) -> &str {
+        "LOG_A"
+    }
+    fn invoke<'b, 'a: 'b>(
+            &'a mut self,
+            app_client: &'b super::app_client::AppClient,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<Duration>, super::app_client::AppClientError>> + 'b>> {
+        Box::pin(async {
+            let rand_str: String = rand::thread_rng().sample_iter(&rand::distributions::Alphanumeric).take(60).map(char::from).collect();
+            log::info!("{}", rand_str);
+            Ok(None)
+        })
+    }
+}
+
+pub(crate) struct LogGeneratorB {}
+
+impl PeriodicAppClientTask for LogGeneratorB {
+    fn get_default_period(&self) -> Duration {
+        Duration::from_millis(3000)
+    }
+    fn name(&self) -> &str {
+        "LOG_B"
+    }
+    fn invoke<'b, 'a: 'b>(
+            &'a mut self,
+            app_client: &'b super::app_client::AppClient,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<Duration>, super::app_client::AppClientError>> + 'b>> {
+        Box::pin(async {
+            let rand_str: String = rand::thread_rng().sample_iter(&rand::distributions::Alphanumeric).take(300).map(char::from).collect();
+            log::info!("{}", rand_str);
+            Ok(None)
+        })
+    }
+}
+
+pub(crate) struct LogGeneratorC {}
+
+impl PeriodicAppClientTask for LogGeneratorC {
+    fn get_default_period(&self) -> Duration {
+        Duration::from_millis(500)
+    }
+    fn name(&self) -> &str {
+        "LOG_C"
+    }
+    fn invoke<'b, 'a: 'b>(
+            &'a mut self,
+            app_client: &'b super::app_client::AppClient,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Option<Duration>, super::app_client::AppClientError>> + 'b>> {
+        Box::pin(async {
+            let rand_str: String = rand::thread_rng().sample_iter(&rand::distributions::Alphanumeric).take(80).map(char::from).collect();
+            log::info!("{}", rand_str);
+            Ok(None)
+        })
     }
 }
