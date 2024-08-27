@@ -6,6 +6,7 @@
 //! (again, see common/log.rs) before invoking the previously existing vprintf function in order to write to
 //! UART. We store the previous vprintf function in PREVIOUS_LOGGER and use esp_log_set_vprintf for this purpose.
 use crate::{
+    common::log::ViamLogEntry,
     google::protobuf::{value::Kind, Struct, Value},
     proto::common::v1::LogEntry,
 };
@@ -14,7 +15,7 @@ use esp_idf_svc::log::EspLogger;
 use esp_idf_svc::sys::{esp_log_set_vprintf, va_list, vprintf_like_t};
 use printf_compat::output::display;
 use ringbuf::Rb;
-use std::{collections::HashMap, sync::OnceLock, time::Instant};
+use std::{collections::HashMap, sync::OnceLock};
 use std::{ffi::c_char, sync::Mutex};
 
 use crate::common::log::{get_log_buffer, ViamLogAdapter};
@@ -64,7 +65,7 @@ unsafe extern "C" fn log_handler(arg1: *const c_char, arg2: va_list) -> i32 {
     }
 }
 
-fn process_current_statement_and_level(mut full_message: String) -> (LogEntry, Instant) {
+fn process_current_statement_and_level(mut full_message: String) -> ViamLogEntry {
     let (mut message, level_initial) = if full_message.starts_with("\x1b[0;") {
         let stripped = full_message.split_off("\x1b[0;".len() + 3);
         let mut stripped_end = stripped
@@ -94,26 +95,23 @@ fn process_current_statement_and_level(mut full_message: String) -> (LogEntry, I
             message = message[(end_of_timestamp + 1)..].to_string()
         }
     }
-    (
-        LogEntry {
-            host: "esp32".to_string(),
-            level,
-            time: None,
-            logger_name: "viam-micro-server".to_string(),
-            message,
-            caller: Some(Struct {
-                fields: HashMap::from([(
-                    "Defined".to_string(),
-                    Value {
-                        kind: Some(Kind::BoolValue(false)),
-                    },
-                )]),
-            }),
-            stack: "".to_string(),
-            fields: vec![],
-        },
-        Instant::now(),
-    )
+    ViamLogEntry::new(LogEntry {
+        host: "esp32".to_string(),
+        level,
+        time: None,
+        logger_name: "viam-micro-server".to_string(),
+        message,
+        caller: Some(Struct {
+            fields: HashMap::from([(
+                "Defined".to_string(),
+                Value {
+                    kind: Some(Kind::BoolValue(false)),
+                },
+            )]),
+        }),
+        stack: "".to_string(),
+        fields: vec![],
+    })
 }
 
 impl ViamLogAdapter for EspLogger {
