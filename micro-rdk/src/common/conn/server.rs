@@ -423,8 +423,17 @@ where
                         // `AppClient` will be available on the next wakeup.
                         let _ = async_io::Timer::after(duration).await;
                         let app_client = app_client.read().await.clone();
+                        let task_name = task.name().to_string();
                         if let Some(app_client) = app_client.as_ref() {
-                            match task.invoke(app_client).await {
+                            match task
+                                .invoke(app_client)
+                                .or(async {
+                                    Timer::after(Duration::from_secs(60)).await;
+                                    log::error!("Periodic task {} timed out", task_name,);
+                                    Err(AppClientError::AppClientRequestTimeout)
+                                })
+                                .await
+                            {
                                 Ok(None) => continue,
                                 Ok(Some(next_duration)) => {
                                     duration = next_duration;
@@ -432,7 +441,7 @@ where
                                 Err(e) => {
                                     log::error!(
                                         "Periodic task {} failed with error {:?}",
-                                        task.name(),
+                                        task_name,
                                         e
                                     );
                                 }
@@ -483,9 +492,9 @@ where
                         current_count,
                         max_anticipated_grpc_clients
                     );
-                    if current_count > (max_anticipated_grpc_clients - 1) {
-                        panic!("too many stuck app client tasks, restarting");
-                    }
+                    // if current_count > (max_anticipated_grpc_clients - 1) {
+                    //     panic!("too many stuck app client tasks, restarting");
+                    // }
                 }
             }
             let sig = if let Some(webrtc_config) = self.webrtc_config.as_ref() {
