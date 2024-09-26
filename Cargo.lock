@@ -2618,6 +2618,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "micro-rdk-nmea"
+version = "0.2.9"
+dependencies = [
+ "base64 0.21.7",
+ "micro-rdk-nmea-macros",
+ "thiserror",
+]
+
+[[package]]
+name = "micro-rdk-nmea-macros"
+version = "0.2.9"
+dependencies = [
+ "proc-macro-crate 2.0.0",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "micro-rdk-server"
 version = "0.2.9"
 dependencies = [

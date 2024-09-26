@@ -7,7 +7,9 @@ members = [
   "micro-rdk-macros",
   "micro-rdk-server",
   "micro-rdk-ffi",
-  "examples/modular-drivers",
+  "examples/modular-drivers", 
+  "micro-rdk-nmea", 
+  "micro-rdk-nmea-macros",
 ]
 
 default-members = [
