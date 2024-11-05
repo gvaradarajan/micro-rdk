@@ -19,6 +19,7 @@ mod esp32 {
     #[cfg(not(feature = "qemu"))]
     use micro_rdk::esp32::conn::network::Esp32WifiNetwork;
     use micro_rdk::esp32::dtls::Esp32DtlsBuilder;
+    use micro_rdk::esp32::rpc_heap::Esp32RpcHeapAllocation;
     #[cfg(not(feature = "qemu"))]
     use micro_rdk::esp32::nvs_storage::NVSStorage;
     use micro_rdk::esp32::tcp::Esp32H2Connector;
@@ -152,7 +153,7 @@ mod esp32 {
         };
         #[cfg(not(feature = "qemu"))]
         let mut server = { builder.build(Esp32H2Connector::default(), Executor::new(), mdns) };
-        server.run_forever();
+        server.run_forever::<Esp32RpcHeapAllocation>();
     }
 }
 
