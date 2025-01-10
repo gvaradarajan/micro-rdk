@@ -34,8 +34,11 @@ pub struct TemperatureExtendedRange {
     instance: u8,
     #[lookup]
     source: TemperatureSource,
+    // #[scale = 0.001]
+    // temperature: [u8; 3],
+    #[bits = 24]
     #[scale = 0.001]
-    temperature: [u8; 3],
+    temperature: u32,
     #[scale = 0.1]
     set_temperature: u16,
 }

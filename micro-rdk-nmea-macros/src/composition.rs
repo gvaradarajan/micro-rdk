@@ -193,17 +193,21 @@ fn handle_number_field(
         let name_as_string_ident = name.to_string();
         let max_token = match bits_size {
             8 | 16 | 32 | 64 => {
-                quote! { <#num_ty>::MAX }
+                quote! { let max = <#num_ty>::MAX; }
             }
             x => {
-                let max_num = 2_i32.pow(x as u32);
-                quote! { #max_num }
+                let x = x as u32;
+                quote! {
+                    let base: #num_ty = 2;
+                    let max = base.pow(#x);
+                }
             }
         };
         scaling_logic = quote! {
+            #max_token
             let result = match result {
-                x if x == #max_token => { return Err(#error_ident::FieldNotPresent(#name_as_string_ident.to_string())); },
-                x if x == (#max_token - 1) => { return Err(#error_ident::FieldError(#name_as_string_ident.to_string())); },
+                x if x == max => { return Err(#error_ident::FieldNotPresent(#name_as_string_ident.to_string())); },
+                x if x == (max - 1) => { return Err(#error_ident::FieldError(#name_as_string_ident.to_string())); },
                 x => {
                     (x as f64) * #scale_token
                 }
@@ -237,6 +241,7 @@ fn handle_number_field(
 
     let nmea_crate = get_micro_nmea_crate_ident();
     new_statements.parsing_logic.push(quote! {
+        println!("bits size: {:?}", #bits_size);
         let reader = #nmea_crate::parse_helpers::parsers::NumberField::<#num_ty>::new(#bits_size)?;
         let (new_index, #name) = reader.read_from_data(&data[..], current_index)?;
         current_index = new_index;

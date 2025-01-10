@@ -65,14 +65,19 @@ macro_rules! number_field {
                     let type_size = std::mem::size_of::<$t>();
                     match self.bit_size {
                         x if x == (type_size * 8) => {
+                            println!("x: {:?}", x);
                             let value: &[u8] = &data[start_idx..(start_idx + type_size)];
                             Ok((start_idx + type_size, <$t>::from_le_bytes(value.try_into()?)))
                         }
                         x => {
-                            let shift = (type_size * 8) - x;
+                            let shift = x % 8;
                             let end_idx = start_idx + (x / 8);
-                            let value: &[u8] = &data[start_idx..(end_idx + 1)];
-                            let value = <$t>::from_le_bytes(value.try_into()?);
+                            let value: &[u8] = &data[start_idx..end_idx];
+                            let padding: Vec<u8> = vec![0; (type_size - value.len())];
+                            let padding_slice: &[u8] = &padding[..];
+                            let join = [value, padding_slice].concat();
+                            let full_value = &join[..];
+                            let value = <$t>::from_le_bytes(full_value.try_into()?);
                             Ok((end_idx, value >> shift << shift))
                         }
                     }

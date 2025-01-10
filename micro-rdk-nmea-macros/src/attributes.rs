@@ -95,7 +95,7 @@ impl MacroAttributes {
                         });
                     }
                     "bits" => {
-                        macro_attrs.bits.get_or_insert(match &attr.meta {
+                        macro_attrs.bits = Some(match &attr.meta {
                             Meta::NameValue(named) => {
                                 if let Expr::Lit(ref expr_lit) = named.value {
                                     let bits_lit = expr_lit.lit.clone();

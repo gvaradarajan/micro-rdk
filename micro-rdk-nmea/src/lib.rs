@@ -1,6 +1,5 @@
 pub mod messages;
 pub mod parse_helpers;
-pub mod sensors;
 
 #[cfg(test)]
 mod tests {
@@ -54,7 +53,7 @@ mod tests {
         println!("set temp: {:?}", thing2.set_temperature());
         println!("instance: {:?}", thing2.instance());
         println!("source {:?}", thing2.source());
-        // assert!(false);
+        assert!(false);
     }
 
     #[test]
