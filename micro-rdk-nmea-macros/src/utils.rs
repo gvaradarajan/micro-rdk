@@ -90,3 +90,20 @@ pub(crate) fn determine_supported_numeric(field_type: &Type) -> bool {
         _ => false,
     }
 }
+
+pub(crate) fn determine_supported_array(field_type: &Type) -> bool {
+    match field_type {
+        Type::Array(type_array) => match type_array.elem.as_ref() {
+            Type::Path(inner_type_path) => {
+                inner_type_path.path.is_ident("u32")
+                    || inner_type_path.path.is_ident("u16")
+                    || inner_type_path.path.is_ident("u8")
+                    || inner_type_path.path.is_ident("i32")
+                    || inner_type_path.path.is_ident("i16")
+                    || inner_type_path.path.is_ident("i8")
+            }
+            _ => false,
+        },
+        _ => false,
+    }
+}
