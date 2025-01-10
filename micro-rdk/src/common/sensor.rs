@@ -49,6 +49,8 @@ pub enum SensorError {
     SensorBoardError(#[from] BoardError),
     #[error("sensor error code {0}")]
     SensorCodeError(i32),
+    #[error("could not convert raw data to proto readings")]
+    SensorSerializationError,
 }
 
 #[cfg(feature = "builtin-components")]
