@@ -72,7 +72,7 @@ macro_rules! number_field {
                         x => {
                             let shift = x % 8;
                             let end_idx = start_idx + (x / 8);
-                            let value: &[u8] = &data[start_idx..end_idx];
+                            let value: &[u8] = &data[start_idx..(end_idx + 1)];
                             let padding: Vec<u8> = vec![0; (type_size - value.len())];
                             let padding_slice: &[u8] = &padding[..];
                             let join = [value, padding_slice].concat();

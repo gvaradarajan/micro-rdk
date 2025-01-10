@@ -187,7 +187,12 @@ fn handle_number_field(
         let mut result = self.#raw_fn_name();
     };
     let mut scaling_logic = quote! {};
-    let mut unit_conversion_logic = quote! {};
+    let unit_conversion_logic = if let Some(unit) = unit {
+        return_type = quote! {f64};
+        unit.tokens()
+    } else {
+        quote! {}
+    };
 
     if let Some(scale_token) = scale_token {
         let name_as_string_ident = name.to_string();
@@ -216,10 +221,7 @@ fn handle_number_field(
         return_type = quote! {f64};
     }
 
-    if let Some(unit) = unit {
-        unit_conversion_logic = unit.tokens();
-        return_type = quote! {f64};
-    }
+    
 
     new_statements.attribute_getters.push(quote! {
         pub fn #name(&self) -> Result<#return_type, #error_ident> {
