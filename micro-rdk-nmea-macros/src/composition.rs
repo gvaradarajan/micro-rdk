@@ -92,6 +92,7 @@ impl PgnComposition {
             impl #impl_generics #name #src_generics #src_where_clause {
                 pub fn from_bytes(data: &[u8], source_id: Option<u8>) -> Result<(Self, usize), #error_ident> {
                     use #crate_ident::parse_helpers::parsers::FieldReader;
+                    println!("data: {:?}", data);
                     #(#parsing_logic)*
                     Ok((Self {
                         #(#struct_initialization)*
