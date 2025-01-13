@@ -1,6 +1,5 @@
 pub mod messages;
 pub mod parse_helpers;
-pub mod sensors;
 
 #[cfg(test)]
 mod tests {
