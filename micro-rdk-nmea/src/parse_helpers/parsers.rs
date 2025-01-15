@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use bitvec::prelude::*;
 use std::{
     array::TryFromSliceError,

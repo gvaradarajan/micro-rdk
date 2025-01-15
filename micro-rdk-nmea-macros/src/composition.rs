@@ -56,7 +56,7 @@ impl PgnComposition {
                 let offset = macro_attrs.offset;
                 statements
                     .parsing_logic
-                    .push(quote! { current_index += (#offset / 8) + 1; });
+                    .push(quote! { cursor.advance(#offset)?; });
             }
 
             let new_statements = if determine_supported_numeric(&field.ty) {
@@ -91,8 +91,9 @@ impl PgnComposition {
         quote! {
             impl #impl_generics #name #src_generics #src_where_clause {
                 pub fn from_bytes(data: &[u8], source_id: Option<u8>) -> Result<(Self, usize), #error_ident> {
-                    use #crate_ident::parse_helpers::parsers::FieldReader;
+                    use #crate_ident::parse_helpers::parsers::{DataCursor, FieldReader};
                     println!("data: {:?}", data);
+                    let cursor = DataCursor::new(data);
                     #(#parsing_logic)*
                     Ok((Self {
                         #(#struct_initialization)*
@@ -191,8 +192,7 @@ fn handle_number_field(
     let nmea_crate = get_micro_nmea_crate_ident();
     new_statements.parsing_logic.push(quote! {
         let reader = #nmea_crate::parse_helpers::parsers::NumberField::<#num_ty>::new(#bits_size)?;
-        let (new_index, #name) = reader.read_from_data(&data[..], current_index)?;
-        current_index = new_index;
+        let #name = reader.read_from_cursor(&cursor)?;
     });
 
     new_statements.struct_initialization.push(quote! {#name,});
