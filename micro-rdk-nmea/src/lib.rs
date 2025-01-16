@@ -5,7 +5,10 @@ pub mod parse_helpers;
 mod tests {
     use base64::{engine::general_purpose, Engine};
 
-    use crate::{messages::pgns::WaterDepth, parse_helpers::errors::NumberFieldError};
+    use crate::{
+        messages::pgns::{TemperatureExtendedRange, WaterDepth},
+        parse_helpers::{enums::TemperatureSource, errors::NumberFieldError},
+    };
 
     #[test]
     fn water_depth_parse() {
@@ -49,5 +52,28 @@ mod tests {
         assert!(range.is_err_and(|err| {
             matches!(err, NumberFieldError::FieldNotPresent(x) if x.as_str() == "range")
         }));
+    }
+
+    #[test]
+    fn temperature_parse() {
+        let temp_str = "DP0BAHg+gD8QkDZnAAAAABLFBAAAAAAACAD/ACMABQD/AADzmwT//w==";
+        let mut data = Vec::<u8>::new();
+        let res = general_purpose::STANDARD.decode_vec(temp_str, &mut data);
+        assert!(res.is_ok());
+
+        let thing2 = TemperatureExtendedRange::from_bytes(&data[33..], Some(23));
+        assert!(thing2.is_ok());
+        let (thing2, _) = thing2.unwrap();
+        assert_eq!(thing2.source_id(), 23);
+        let temp = thing2.temperature();
+        assert!(temp.is_ok());
+        let temp = temp.unwrap();
+        assert_eq!(temp, 28.91700000000003);
+
+        let instance = thing2.instance();
+        assert!(instance.is_ok());
+        let instance = instance.unwrap();
+        assert_eq!(instance, 0);
+        assert!(matches!(thing2.source(), TemperatureSource::SeaTemperature));
     }
 }

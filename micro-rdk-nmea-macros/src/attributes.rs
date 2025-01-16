@@ -17,6 +17,7 @@ use crate::utils::{error_tokens, UnitConversion};
 // length_field -> if this field is a list of fieldsets, this is the field whose value represents
 // the expected length of this list
 
+#[derive(Debug)]
 pub(crate) struct MacroAttributes {
     pub(crate) bits: Option<usize>,
     pub(crate) offset: usize,
@@ -27,16 +28,16 @@ pub(crate) struct MacroAttributes {
     pub(crate) length_field: Option<Ident>,
 }
 
-fn get_bits(field_ty: &Type) -> Result<Option<usize>, TokenStream> {
+fn get_bits(field_ty: &Type) -> Result<usize, TokenStream> {
     Ok(match field_ty {
-        Type::Path(type_path) if type_path.path.is_ident("u32") => Some(32),
-        Type::Path(type_path) if type_path.path.is_ident("u16") => Some(16),
-        Type::Path(type_path) if type_path.path.is_ident("u8") => Some(8),
-        Type::Path(type_path) if type_path.path.is_ident("i32") => Some(32),
-        Type::Path(type_path) if type_path.path.is_ident("i16") => Some(16),
-        Type::Path(type_path) if type_path.path.is_ident("i8") => Some(8),
-        Type::Path(type_path) if type_path.path.is_ident("i64") => Some(64),
-        Type::Path(type_path) if type_path.path.is_ident("u64") => Some(64),
+        Type::Path(type_path) if type_path.path.is_ident("u32") => 32,
+        Type::Path(type_path) if type_path.path.is_ident("u16") => 16,
+        Type::Path(type_path) if type_path.path.is_ident("u8") => 8,
+        Type::Path(type_path) if type_path.path.is_ident("i32") => 32,
+        Type::Path(type_path) if type_path.path.is_ident("i16") => 16,
+        Type::Path(type_path) if type_path.path.is_ident("i8") => 8,
+        Type::Path(type_path) if type_path.path.is_ident("i64") => 64,
+        Type::Path(type_path) if type_path.path.is_ident("u64") => 64,
         Type::Array(type_array) => {
             if let Expr::Lit(len) = &type_array.len {
                 if let Lit::Int(len) = &len.lit {
@@ -45,15 +46,17 @@ fn get_bits(field_ty: &Type) -> Result<Option<usize>, TokenStream> {
                             return Err(error_tokens("array instance type must be u8"));
                         }
                     }
-                    len.base10_parse::<usize>().ok().map(|x| x * 8)
+                    len.base10_parse::<usize>()
+                        .map(|x| x * 8)
+                        .map_err(|err| err.to_compile_error())?
                 } else {
-                    None
+                    return Err(error_tokens("array length is unexpected literal type"));
                 }
             } else {
-                None
+                return Err(error_tokens("array length is unexpected non-literal type"));
             }
         }
-        _ => None,
+        _ => 8,
     })
 }
 
@@ -69,7 +72,7 @@ impl MacroAttributes {
             unit: None,
         };
 
-        macro_attrs.bits = get_bits(&field.ty)?;
+        // macro_attrs.bits = get_bits(&field.ty)?;
         for attr in field.attrs.iter() {
             for seg in attr.path().segments.iter() {
                 let ident = &seg.ident;
@@ -229,7 +232,8 @@ impl MacroAttributes {
                 };
             }
         }
-        macro_attrs.bits.get_or_insert(8);
+        // macro_attrs.bits.get_or_insert(8);
+        macro_attrs.bits.get_or_insert(get_bits(&field.ty)?);
         Ok(macro_attrs)
     }
 }

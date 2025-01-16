@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{DeriveInput, Field, Ident};
+use syn::{DeriveInput, Field, Ident, Type};
 
 use crate::attributes::MacroAttributes;
 use crate::utils::{determine_supported_numeric, error_tokens, get_micro_nmea_crate_ident};
@@ -61,10 +61,13 @@ impl PgnComposition {
 
             let new_statements = if determine_supported_numeric(&field.ty) {
                 handle_number_field(name, field, &macro_attrs)?
+            } else if macro_attrs.is_lookup {
+                handle_lookup_field(name, &field.ty, &macro_attrs)?
             } else {
                 let err_msg = format!(
-                    "field type for {:?} unsupported for PGN message",
-                    name.to_string()
+                    "field type for {:?} unsupported for PGN message, macro attributes: {:?}",
+                    name.to_string(),
+                    macro_attrs
                 );
                 return Err(error_tokens(&err_msg));
             };
@@ -147,17 +150,21 @@ fn handle_number_field(
         let name_as_string_ident = name.to_string();
         let max_token = match bits_size {
             8 | 16 | 32 | 64 => {
-                quote! { <#num_ty>::MAX }
+                quote! { let max = <#num_ty>::MAX; }
             }
             x => {
-                let max_num = 2_i32.pow(x as u32);
-                quote! { #max_num }
+                let x = x as u32;
+                quote! {
+                    let base: #num_ty = 2;
+                    let max = base.pow(#x);
+                }
             }
         };
         scaling_logic = quote! {
+            #max_token
             let result = match result {
-                x if x == #max_token => { return Err(#error_ident::FieldNotPresent(#name_as_string_ident.to_string())); },
-                x if x == (#max_token - 1) => { return Err(#error_ident::FieldError(#name_as_string_ident.to_string())); },
+                x if x == max => { return Err(#error_ident::FieldNotPresent(#name_as_string_ident.to_string())); },
+                x if x == (max - 1) => { return Err(#error_ident::FieldError(#name_as_string_ident.to_string())); },
                 x => {
                     (x as f64) * #scale_token
                 }
@@ -196,5 +203,41 @@ fn handle_number_field(
     });
 
     new_statements.struct_initialization.push(quote! {#name,});
+    Ok(new_statements)
+}
+
+fn handle_lookup_field(
+    name: &Ident,
+    field_type: &Type,
+    macro_attrs: &MacroAttributes,
+) -> Result<PgnComposition, TokenStream> {
+    let mut new_statements = PgnComposition::new();
+    let bits_size = macro_attrs.bits.unwrap();
+    if let Type::Path(type_path) = field_type {
+        let enum_type = type_path.clone();
+        new_statements.attribute_getters.push(quote! {
+            pub fn #name(&self) -> #enum_type { self.#name }
+        });
+
+        let nmea_crate = get_micro_nmea_crate_ident();
+        let setters = quote! {
+            let reader = #nmea_crate::parse_helpers::parsers::LookupField::<#enum_type>::new(#bits_size)?;
+            let #name = reader.read_from_cursor(&cursor)?;
+        };
+
+        new_statements.parsing_logic.push(setters);
+
+        new_statements.struct_initialization.push(quote! {#name,});
+        let proto_import_prefix = crate::utils::get_proto_import_prefix();
+        let prop_name = name.to_string();
+        let label = macro_attrs.label.clone().unwrap_or(quote! {#prop_name});
+        new_statements.proto_conversion_logic.push(quote! {
+            let value = self.#name();
+            let value = #proto_import_prefix::Value {
+                kind: Some(#proto_import_prefix::value::Kind::StringValue(value.to_string()))
+            };
+            readings.insert(#label.to_string(), value);
+        })
+    }
     Ok(new_statements)
 }

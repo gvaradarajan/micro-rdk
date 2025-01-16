@@ -118,7 +118,6 @@ macro_rules! generate_number_field_readers {
                     if (value.bit_size / 8) > max_size {
                         return Err(NumberFieldError::ImproperBitSize(value.bit_size, max_size * 8));
                     }
-
                     let bits = &value.data[..].view_bits::<Msb0>();
 
                     let start_idx = value.bit_position.load(Ordering::SeqCst) % 8;

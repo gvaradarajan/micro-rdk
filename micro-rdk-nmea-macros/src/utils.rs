@@ -4,6 +4,7 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
 use syn::{Ident, Type};
 
+#[derive(Debug)]
 pub(crate) enum UnitConversion {
     KelvinToCelsius,
     CoulombToAmpereHour,
