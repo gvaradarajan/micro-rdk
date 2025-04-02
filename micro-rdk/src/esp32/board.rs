@@ -236,7 +236,7 @@ impl EspBoard {
                 if let Some(p) = p {
                     // RSDK-4763: make event type configurable
                     // https://viam.atlassian.net/browse/RSDK-4763
-                    p.setup_interrupt(InterruptType::PosEdge)?
+                    p.setup_interrupt(InterruptType::NegEdge)?
                 } else {
                     let mut p = Esp32GPIOPin::new(conf.pin, None)?;
                     p.setup_interrupt(InterruptType::PosEdge)?;
