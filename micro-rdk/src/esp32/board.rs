@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use esp_idf_svc::hal::gpio::Pull;
 use log::*;
 use std::{
     collections::HashMap,
@@ -204,11 +205,18 @@ impl EspBoard {
                 pins.sort();
                 pins.dedup();
                 pins.iter()
-                    .filter_map(|pin| match Esp32GPIOPin::new(*pin, None) {
-                        Ok(p) => Some(p),
-                        Err(err) => {
-                            log::error!("Error configuring pin: {:?}", err);
+                    .filter_map(|pin| {
+                        let pull = if *pin == 25 {
+                            Some(Pull::Up)  
+                        } else {
                             None
+                        };
+                        match Esp32GPIOPin::new(*pin, pull) {
+                            Ok(p) => Some(p),
+                            Err(err) => {
+                                log::error!("Error configuring pin: {:?}", err);
+                                None
+                            }
                         }
                     })
                     .collect()
